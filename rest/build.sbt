@@ -28,7 +28,7 @@ lazy val root = (project in file("."))
     organization := "io.funkode",
     version := "0.0.1-SNAPSHOT",
     scalaVersion := "2.13.6",
-    name := "rest",
+    name := "funkode-rest",
     homepage := Some(url("https://github.com/carlos-verdes/funkode/rest")),
     scmInfo := Some(ScmInfo(url("https://github.com/carlos-verdes/funkode/rest"), "git@github.com:carlos-verdes/funkode.git")),
     developers := List(Developer("carlos-verdes", "Carlos Verdes", "cverdes@gmail.com", url("https://github.com/carlos-verdes"))),
@@ -42,7 +42,7 @@ lazy val root = (project in file("."))
 addCommandAlias("prepare", ";clean ;headerCreate ;publishSigned")
 addCommandAlias("sanity", ";clean ;compile ;scalastyle ;coverage ;test ;it:test ;coverageOff ;coverageReport ;project")
 
-coverageExcludedPackages := """io.funkode.rest.Main; io.funkode.*.autoDerive"""
+coverageExcludedPackages := """io.funkode.rest.Main; io.funkode.*.autoDerive; org.specs2.*"""
 
 organizationName := "io.funkode"
 startYear := Some(2021)
