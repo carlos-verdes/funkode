@@ -13,7 +13,7 @@ import org.http4s.{HttpRoutes, Method, Request, Response, Status}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.implicits.http4sLiteralsSyntax
 import org.specs2.Specification
-import org.specs2.matcher.{IOMatchers, MatchResult}
+import org.specs2.matcher.{IOMatchers, MatchResult, RestMatchers}
 import org.specs2.specification.core.SpecStructure
 
 
@@ -46,7 +46,7 @@ trait SomeErrors extends IOMatchers {
 
 class ErrorSpec
     extends Specification
-    with RestRuntimeMatchers[IO]
+    with RestMatchers[IO]
     with SomeErrors { def is: SpecStructure =
   s2"""
       ApiErrorOps should: <br/>
