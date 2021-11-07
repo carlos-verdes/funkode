@@ -35,6 +35,7 @@ lazy val root = (project in file("."))
     publishMavenStyle := true,
     Defaults.itSettings,
     libraryDependencies ++= allLib,
+    scalacOptions += "-Ymacro-annotations",
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.0" cross CrossVersion.full),
     addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1")
   )
@@ -42,7 +43,7 @@ lazy val root = (project in file("."))
 addCommandAlias("prepare", ";clean ;headerCreate ;publishSigned")
 addCommandAlias("sanity", ";clean ;compile ;scalastyle ;coverage ;test ;it:test ;coverageOff ;coverageReport ;project")
 
-coverageExcludedPackages := """io.funkode.rest.Main; io.funkode.*.autoDerive; org.specs2.*"""
+coverageExcludedPackages := """io.funkode.rest.Main; io.funkode.*.autoDerive; org.specs2.*; avokka.arangodb.*"""
 
 organizationName := "io.funkode"
 startYear := Some(2021)

@@ -32,6 +32,7 @@ object error {
   def forbiddenError(request: Any): RestError = ForbiddenError(request.some, None, None)
   def notFoundError(id: Any): RestError = NotFoundError(id.some, None, None)
   def conflictError(request: Any): RestError = ConflictError(request.some, None, None)
+  def runtimeError(t: Throwable): RestError = RuntimeError(None, None, t.some)
 
   def restErrorMidleware[F[_]: MonadThrow](service: HttpRoutes[F]): HttpRoutes[F] = Kleisli { (req: Request[F]) =>
     service(req).handleErrorWith(apiErrorToOptionT)
