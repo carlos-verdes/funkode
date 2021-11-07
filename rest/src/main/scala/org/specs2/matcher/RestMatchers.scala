@@ -13,6 +13,7 @@ import cats.implicits.toFlatMapOps
 import org.http4s.{EntityDecoder, Header, Headers, Message, Response, Status}
 import org.specs2.execute.{Error, Result, Results, Success}
 
+
 trait RestMatchers[F[_]] extends RunTimedMatchers[F] with Matchers {
 
   // based on https://github.com/etorreborre/specs2-http4s/blob/master/src/main/scala/org/specs2/matcher/Http4sMatchers.scala
