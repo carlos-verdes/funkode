@@ -32,6 +32,7 @@ object error {
   def forbiddenError(request: Any): RestError = ForbiddenError(request.some, None, None)
   def notFoundError(id: Any): RestError = NotFoundError(id.some, None, None)
   def conflictError(request: Any): RestError = ConflictError(request.some, None, None)
+  def notImplementedError(method: String): RestError = NotImplementedError(method, None)
   def runtimeError(t: Throwable): RestError = RuntimeError(None, None, t.some)
 
   def restErrorMidleware[F[_]: MonadThrow](service: HttpRoutes[F]): HttpRoutes[F] = Kleisli { (req: Request[F]) =>
@@ -83,7 +84,7 @@ object error {
 
   def causeMessage(cause: Option[Throwable]): String = {
     cause.foreach(logger.error(_)("API error"))
-    cause.map(_.getLocalizedMessage).getOrElse("Unknown error")
+    cause.map(c => if(c != null) c.getLocalizedMessage else "Unknown error").getOrElse("Unknown error")
   }
   
   implicit class ApiErrorOps[F[_]: MonadThrow, R](effect: F[R]) {

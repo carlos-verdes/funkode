@@ -52,7 +52,6 @@ object resource {
             case Left(error) => F.raiseError(decodeFailureToApiError(error))
           })
 
-
     def decodeFailureToApiError(decodeFailure: DecodeFailure): Throwable =
       BadRequestError(None, decodeFailure.message.some, decodeFailure.cause)
   }
