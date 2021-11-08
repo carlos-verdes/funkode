@@ -27,11 +27,4 @@ object store {
     def linkResources[L, R](left: HttpResource[L], right: HttpResource[R], relType: String): F[Unit] =
       linkResources(left.uri, right.uri, relType)
   }
-
-  object arango {
-
-    import avokka.velocypack.{VPackDecoder, VPackEncoder}
-
-    type VPackStoreDsl[F[_]] = HttpStoreDsl[F, VPackEncoder, VPackDecoder]
-  }
 }

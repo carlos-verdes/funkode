@@ -3,7 +3,6 @@
  */
 
 package io.funkode
-package rest
 package arango
 
 import scala.concurrent.Future
@@ -30,7 +29,7 @@ trait IOMatchersWithLogger extends IOMatchers {
 
 trait InterpretersAndDsls extends IOMatchersWithLogger {
 
-  import store._
+  import rest.store._
 
   val arangoConfig = ArangoConfiguration.load()
   val arangoResource = Arango(arangoConfig)
@@ -41,7 +40,7 @@ trait InterpretersAndDsls extends IOMatchersWithLogger {
 
 trait MockServiceWithArango extends InterpretersAndDsls {
 
-  import resource._
+  import rest.resource._
 
   case class Mock(id: String, user: String, age: Int)
   case class Person(name: String)
@@ -271,7 +270,7 @@ class ArangoServiceIT(env: Env)
 
   """
 
-  import error._
+  import rest.error._
 
   def arangoIsReady: MatchResult[Future[Boolean]] = isContainerReady(arangoContainer) must beTrue.await
 

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-package io.funkode
+package io.funkode.arango
 
 import scala.concurrent.duration._
 
