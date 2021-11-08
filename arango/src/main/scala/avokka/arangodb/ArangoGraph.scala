@@ -11,7 +11,6 @@ import avokka.arangodb.models.{EdgeDefinitionCreate, GraphCreate, GraphInfo}
 import avokka.arangodb.protocol.{ArangoClient, ArangoResponse}
 import avokka.arangodb.types.DatabaseName
 
-
 case class GraphResponse(graph: GraphRepresentation)
 
 trait ArangoGraph[F[_]] {
