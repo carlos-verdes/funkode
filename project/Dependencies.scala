@@ -7,14 +7,16 @@ object Dependencies {
     val catsV = "2.6.1" // https://github.com/typelevel/cats/releases
     val catsTaglessMacrosV = "0.14.0" // https://github.com/typelevel/cats-tagless
     val fs2Version = "2.5.6" // https://github.com/functional-streams-for-scala/fs2/releases
-    val http4sV = "0.22.7" // https://github.com/http4s/http4s/releases
-    val circeV = "0.14.1" // https://github.com/circe/circe/releases
+    val http4sV = "0.23.6" // https://github.com/http4s/http4s/releases
+    val circeV = "0.15.0-M1" // https://github.com/circe/circe/releases
     val avokkaV = "0.0.7"
     val tsecV = "0.3.0-M1"
     val web3jVersion = "5.0.0"
-    val logCatsSlf4jV = "1.3.1"
+    val logCatsSlf4jV = "2.1.1"
     val logBackV = "1.2.3"
-    val specs2V = "4.9.3"
+    val specs2Scala2V = "4.9.3"
+    val specs2V = "5.0.0-ALPHA-03"
+    val specs2CatsV = "1.0.0-ALPHA-01"
     val dockerTestV = "0.9.9"
     val jansiVersion = "1.8"
   }
@@ -45,8 +47,10 @@ object Dependencies {
     val logCatsSlf4j       = "org.typelevel"        %% "log4cats-slf4j"          % Versions.logCatsSlf4jV
     val jansi              = "org.fusesource.jansi" % "jansi"                    % Versions.jansiVersion
 
+    val specs2Scala2Core   = "org.specs2"       %% "specs2-core"                 % Versions.specs2Scala2V
+    val specs2Scala2Cats   = "org.specs2"       %% "specs2-cats"                 % Versions.specs2Scala2V
     val specs2Core         = "org.specs2"       %% "specs2-core"                 % Versions.specs2V
-    val specs2Cats         = "org.specs2"       %% "specs2-cats"                 % Versions.specs2V
+    val specs2Cats         = "org.specs2"       %% "specs2-cats"                 % Versions.specs2CatsV
 
     val dockerTestConfig   = "com.whisk"        %% "docker-testkit-config"       % Versions.dockerTestV
     val dockerTestSpecs2   = "com.whisk"        %% "docker-testkit-specs2"       % Versions.dockerTestV % "it, test"

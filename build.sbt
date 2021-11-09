@@ -9,9 +9,17 @@ ThisBuild / scmInfo := Some(ScmInfo(url("https://github.com/carlos-verdes/funkod
 ThisBuild / developers := List(Developer("carlos-verdes", "Carlos Verdes", "cverdes@gmail.com", url("https://github.com/carlos-verdes")))
 ThisBuild / resolvers ++= Seq(Resolver.sonatypeRepo("releases"))
 
+ThisBuild / scalacOptions ++= {
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((3, _)) => Seq("-Ykind-projector:underscores")
+    //case Some((2, 13)) | Some((2, 12)) => Seq("-Xsource:3", "-P:kind-projector:underscore-placeholders")
+    case _ => Seq()
+  }
+}
+
 val http4sLibraries = Seq(http4sdsl, http4sServer, http4sBlazeServer, http4sClient, http4sCirce)
-val catsLibraries = Seq(catsCore, catsFree, catsTaglessMacros)
-val circeLibraries = Seq(circeGeneric, circeLiteral)
+val catsLibraries = Seq(catsCore)
+val circeLibraries = Seq(circeGeneric)
 val avokkaLibraries = Seq(avokkaFs2, avokkaVelocipack)
 val secLibraries = Seq(tsecSig, tsecMac, web3)
 
@@ -19,39 +27,25 @@ val codeLibraries = http4sLibraries ++ catsLibraries ++ circeLibraries
 
 val logLibraries = Seq(logback, logCatsSlf4j, jansi)
 val testLibraries = Seq(specs2Core, specs2Cats)
+val testLibrariesScala2 = Seq(specs2Scala2Core, specs2Scala2Cats)
 
 val dockerLibraries = Seq(dockerTestConfig, dockerTestSpecs2, dockerTestSpotify)
 val javaxLibraries = Seq(javaxBind, javaxActivation, jaxbCore, jaxbImpl)
 
 val restLibs = codeLibraries ++ logLibraries ++ testLibraries ++ javaxLibraries
-val arangoLibs = avokkaLibraries ++ logLibraries ++ testLibraries ++ dockerLibraries
+val arangoLibs = avokkaLibraries ++ logLibraries ++ testLibrariesScala2 ++ dockerLibraries
 
 lazy val rest = (project in file("rest"))
   .configs(IntegrationTest)
   .settings(
     name := "rest",
+    scalaVersion := "3.0.0",
+    crossScalaVersions ++= Seq("2.13.6", "3.0.0"),
     publishMavenStyle := true,
     Defaults.itSettings,
     libraryDependencies ++= restLibs,
     scalacOptions += "-Ymacro-annotations",
-    coverageExcludedPackages := """io.funkode.rest.Main; io.funkode.*.autoDerive; org.specs2.*;""",
-    addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.0" cross CrossVersion.full),
-    addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1")
-  )
-
-lazy val arango = (project in file("arango"))
-    .dependsOn(rest)
-    .configs(IntegrationTest)
-    .settings(
-      name := "arango",
-      publishMavenStyle := true,
-      Defaults.itSettings,
-      libraryDependencies ++= arangoLibs,
-      scalacOptions += "-Ymacro-annotations",
-      coverageExcludedPackages := """io.funkode.arango.Main; io.funkode.*.autoDerive; avokka.arangodb.*;""",
-      addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.0" cross CrossVersion.full),
-      addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1")
-    )
+    coverageExcludedPackages := """io.funkode.rest.Main; io.funkode.*.autoDerive; org.specs2.*;""")
 
 addCommandAlias("prepare", ";clean ;headerCreate ;publishSigned")
 addCommandAlias("sanity", ";clean ;compile ;scalastyle ;coverage ;test ;it:test ;coverageOff ;coverageReport ;project")

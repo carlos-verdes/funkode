@@ -20,7 +20,7 @@ trait RestMatchers[F[_]] extends RunTimedMatchers[F] with Matchers {
   // I don't import the library to avoid compatibility issues with main libraries
 
   def haveStatus(expected: Status): Matcher[Response[F]] =
-    be_===(expected) ^^ { r: Response[F] => r.status.aka("the response status") }
+    be_===(expected) ^^ { (r: Response[F]) => r.status.aka("the response status") }
 
   def returnStatus(s: Status): Matcher[F[Response[F]]] =
     returnValue(haveStatus(s)) ^^ { (m: F[Response[F]]) => m.aka("the returned response status") }
