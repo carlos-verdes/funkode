@@ -39,11 +39,11 @@ lazy val rest = (project in file("rest"))
     addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1")
   )
 
-lazy val arango = (project in file("arango"))
+lazy val arangoVpack = (project in file("arango-vpack"))
     .dependsOn(rest)
     .configs(IntegrationTest)
     .settings(
-      name := "arango",
+      name := "arango-vpack",
       publishMavenStyle := true,
       Defaults.itSettings,
       libraryDependencies ++= arangoLibs,
