@@ -25,6 +25,7 @@ object Dependencies {
     val http4sdsl          = "org.http4s"         %% "http4s-dsl"                  % Versions.http4sV
     val http4sServer       = "org.http4s"         %% "http4s-server"               % Versions.http4sV
     val http4sBlazeServer  = "org.http4s"         %% "http4s-blaze-server"         % Versions.http4sV
+    val http4sBlazeClient  = "org.http4s"         %% "http4s-blaze-client"         % Versions.http4sV
     val http4sClient       = "org.http4s"         %% "http4s-client"               % Versions.http4sV
     val http4sCirce        = "org.http4s"         %% "http4s-circe"                % Versions.http4sV
     val catsCore           = "org.typelevel"      %% "cats-core"                   % Versions.catsV
@@ -35,6 +36,7 @@ object Dependencies {
     val circeGenericExtras = "io.circe"           %% "circe-generic-extras"        % Versions.circeV
     val circeParser        = "io.circe"           %% "circe-parser"                % Versions.circeV
     val circeLiteral       = "io.circe"           %% "circe-literal"               % Versions.circeV
+    val avokkaCore         = "com.bicou"          %% "avokka-arangodb"             % Versions.avokkaV
     val avokkaVelocipack   = "com.bicou"          %% "avokka-velocypack"           % Versions.avokkaV
     val avokkaFs2          = "com.bicou"          %% "avokka-arangodb-fs2"         % Versions.avokkaV
     val tsecMac            = "io.github.jmcardon" %% "tsec-jwt-mac"                % Versions.tsecV

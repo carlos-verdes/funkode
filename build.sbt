@@ -24,7 +24,8 @@ val dockerLibraries = Seq(dockerTestConfig, dockerTestSpecs2, dockerTestSpotify)
 val javaxLibraries = Seq(javaxBind, javaxActivation, jaxbCore, jaxbImpl)
 
 val restLibs = codeLibraries ++ logLibraries ++ testLibraries ++ javaxLibraries
-val arangoLibs = avokkaLibraries ++ logLibraries ++ testLibraries ++ dockerLibraries
+val arangoVpackLibs = avokkaLibraries ++ logLibraries ++ testLibraries ++ dockerLibraries
+val arangoHttp4sLibs = Seq(avokkaCore, http4sBlazeClient) ++ logLibraries ++ testLibraries ++ dockerLibraries
 
 lazy val rest = (project in file("rest"))
   .configs(IntegrationTest)
@@ -39,6 +40,20 @@ lazy val rest = (project in file("rest"))
     addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1")
   )
 
+lazy val http4sArango = (project in file("http4s-arango"))
+    .dependsOn(rest)
+    .configs(IntegrationTest)
+    .settings(
+      name := "http4s-arango",
+      publishMavenStyle := true,
+      Defaults.itSettings,
+      libraryDependencies ++= arangoHttp4sLibs,
+      scalacOptions += "-Ymacro-annotations",
+      coverageExcludedPackages := """io.funkode.arango.Main; io.funkode.*.autoDerive; avokka.arangodb.*;""",
+      addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.0" cross CrossVersion.full),
+      addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1")
+    )
+
 lazy val arangoVpack = (project in file("arango-vpack"))
     .dependsOn(rest)
     .configs(IntegrationTest)
@@ -46,7 +61,7 @@ lazy val arangoVpack = (project in file("arango-vpack"))
       name := "arango-vpack",
       publishMavenStyle := true,
       Defaults.itSettings,
-      libraryDependencies ++= arangoLibs,
+      libraryDependencies ++= arangoVpackLibs,
       scalacOptions += "-Ymacro-annotations",
       coverageExcludedPackages := """io.funkode.arango.Main; io.funkode.*.autoDerive; avokka.arangodb.*;""",
       addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.0" cross CrossVersion.full),
