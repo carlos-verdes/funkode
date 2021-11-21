@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 io.freemonads
+ * Copyright 2021 io.funkode
  *
  * SPDX-License-Identifier: MIT
  */
