@@ -1,6 +1,9 @@
 /*
- * TODO: License goes here!
+ * Copyright 2021 io.funkode
+ *
+ * SPDX-License-Identifier: MIT
  */
+
 package io.funkode
 package arango
 
