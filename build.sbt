@@ -35,6 +35,7 @@ lazy val rest = (project in file("rest"))
   .settings(
     name := "rest",
     publishMavenStyle := true,
+    releasePublishArtifactsAction := PgpKeys.publishSigned.value,
     headerSettings(Test),
     startYear := Some(2021),
     licenses += ("MIT", new URL("https://opensource.org/licenses/MIT")),
@@ -53,6 +54,7 @@ lazy val arangoVpack = (project in file("arango-vpack"))
     .settings(
       name := "arango-vpack",
       publishMavenStyle := true,
+      releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       Defaults.itSettings,
       libraryDependencies ++= arangoLibs,
       scalacOptions += "-Ymacro-annotations",
