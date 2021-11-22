@@ -78,21 +78,21 @@ addCommandAlias("sanity", ";clean ;compile ;scalastyle ;coverage ;test ;it:test 
 coverageExcludedPackages := """io.funkode.rest.Main; io.funkode.*.autoDerive; org.specs2.*; avokka.arangodb.*"""
 
 
-publishMavenStyle := true
-publishTo := {
+ThisBuild / publishMavenStyle := true
+ThisBuild / publishTo := {
   val nexus = "https://s01.oss.sonatype.org/"
   if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
-credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials")
+ThisBuild / credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials")
 
 import xerial.sbt.Sonatype._
-sonatypeProjectHosting := Some(GitHubHosting("carlos-verdes", "funkode", "cverdes@gmail.com"))
-sonatypeCredentialHost := "s01.oss.sonatype.org"
-sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+ThisBuild / sonatypeProjectHosting := Some(GitHubHosting("carlos-verdes", "funkode", "cverdes@gmail.com"))
+ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
+ThisBuild / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 
 // realease with sbt-release plugin
 import ReleaseTransformations._
-releaseCrossBuild := true
-releasePublishArtifactsAction := PgpKeys.publishSigned.value
+ThisBuild / releaseCrossBuild := true
+ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
