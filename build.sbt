@@ -6,8 +6,8 @@ import sbt.ThisBuild
 ThisBuild / organization := "io.funkode"
 ThisBuild / scalaVersion := "2.13.6"
 ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
-ThisBuild / homepage := Some(url("https://github.com/carlos-verdes/funkode/rest"))
-ThisBuild / scmInfo := Some(ScmInfo(url("https://github.com/carlos-verdes/funkode/rest"), "git@github.com:carlos-verdes/funkode.git"))
+ThisBuild / homepage := Some(url("https://github.com/carlos-verdes/funkode"))
+ThisBuild / scmInfo := Some(ScmInfo(url("https://github.com/carlos-verdes/funkode"), "git@github.com:carlos-verdes/funkode.git"))
 ThisBuild / developers := List(Developer("carlos-verdes", "Carlos Verdes", "cverdes@gmail.com", url("https://github.com/carlos-verdes")))
 ThisBuild / resolvers ++= Seq(Resolver.sonatypeRepo("releases"))
 
@@ -63,6 +63,13 @@ lazy val arangoVpack = (project in file("arango-vpack"))
       coverageExcludedPackages := """io.funkode.arango.Main; io.funkode.*.autoDerive; avokka.arangodb.*;""",
       addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.0" cross CrossVersion.full),
       addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1")
+    )
+
+lazy val funkode = (project in file("."))
+    .aggregate(rest, arangoVpack)
+    .settings(
+      publishArtifact := false,
+      publish / skip := true
     )
 
 addCommandAlias("prepare", ";clean ;headerCreate ;publishSigned")
