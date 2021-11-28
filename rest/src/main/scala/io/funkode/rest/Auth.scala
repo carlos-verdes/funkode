@@ -31,23 +31,22 @@ object auth {
 
   // $COVERAGE-OFF$
   @newtype case class Nonce(value: String)
-  @newtype case class Address(value: String)
-  @newtype case class Message(value: String)
-  @newtype case class Signature(value: String)
-
   @newtype case class Subject(value: String)
   case class Claim(subject: Subject)
   @newtype case class Token(value: String)
+
+  @newtype case class Message(value: String)
+  @newtype case class Signature(value: String)
   // $COVERAGE-ON$
 
   @finalAlg
   @autoFunctorK
   @autoSemigroupalK
-  trait AuthAlgebra[F[_]] {
+  trait AuthDsl[F[_]] {
 
-    def createNonce(address: Address): F[Nonce]
-    def validateAddress(address: Address): F[Address]
-    def validateMessage(msg: Message, signature: Signature, address: Address): F[Unit]
+    def createNonce(subject: Subject): F[Nonce]
+    def validateSubject(subject: Subject): F[Subject]
+    def validateMessage(msg: Message, signature: Signature, subject: Subject): F[Unit]
 
     def createToken(subject: Subject): F[Token]
     def validateToken(token: Token): F[Claim]
@@ -77,8 +76,8 @@ object auth {
     def at(conf: ConfigSource = ConfigSource.default): ConfigSource = conf.at("jwt")
     def load(conf: ConfigSource = ConfigSource.default): JwtConfig = at(conf).loadOrThrow[JwtConfig]
 
-    private def canonical(address: Address): Address = Address(toChecksumAddress(address.value))
-    private def canonical(address: String): Address = canonical(Address(address))
+    private def canonical(address: Subject): Subject = Subject(toChecksumAddress(address.value))
+    private def canonical(address: String): Subject = canonical(Subject(address))
 
     lazy val jwtConf: JwtConfig = load()
     lazy val signingKey = HMACSHA256.unsafeBuildKey(jwtConf.signingKey.b64Bytes.get)
@@ -86,22 +85,22 @@ object auth {
     class JwtSecurityInterpreter[F[_]](
         implicit F: MonadThrow[F],
         S: Sync[F],
-        J: tsec.jws.mac.JWSMacCV[F, tsec.mac.jca.HMACSHA256]) extends AuthAlgebra[F] {
+        J: tsec.jws.mac.JWSMacCV[F, tsec.mac.jca.HMACSHA256]) extends AuthDsl[F] {
 
-      override def createNonce(address: Address): F[Nonce] = Nonce(UUID.randomUUID().toString).pure
+      override def createNonce(subject: Subject): F[Nonce] = Nonce(UUID.randomUUID().toString).pure
 
-      override def validateAddress(address: Address): F[Address] =
-        if (ETH_ADDRESS_REGEX.matches(address.value.toLowerCase)){
-          canonical(address).pure[F]
+      override def validateSubject(subject: Subject): F[Subject] =
+        if (ETH_ADDRESS_REGEX.matches(subject.value.toLowerCase)){
+          canonical(subject).pure[F]
         } else {
           F.raiseError(WRONG_ETH_ADDRESS_ERROR)
         }
 
-      override def validateMessage(msg: Message, signature: Signature, address: Address): F[Unit] = {
+      override def validateMessage(msg: Message, signature: Signature, subject: Subject): F[Unit] = {
 
         val prefixedMessage = PERSONAL_MESSAGE_PREFIX + msg.value.length + msg.value
         val messageHash = Hash.sha3(prefixedMessage.getBytes)
-        val canonicalAddress = canonical(address)
+        val canonicalAddress = canonical(subject)
 
         val signatureBytes = hexStringToByteArray(signature.value)
         val aux = signatureBytes(INDEX_64)

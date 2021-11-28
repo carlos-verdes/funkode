@@ -38,10 +38,10 @@ trait MessagesAndSignatures {
   val signature2 = Signature("0x2c6401216c9031b9a6fb8cbfccab4fcec6c951cdf40e2320108d1856eb532250576865fbcd452bcdc4c57" +
       "321b619ed7a9cfd38bd973c3e1e0243ac2777fe9d5b1b")
 
-  val walletAddress = Address("0x31b26e43651e9371c88af3d36c14cfd938baf4fd")
-  val canonicalAddress = Address("0x31b26E43651e9371C88aF3D36c14CfD938BaF4Fd")
-  val otherAddress = Address("0xef678007d18427e6022059dbc264f27507cd1ffc")
-  val wrongFormatAddress = Address("ef678007d18427e6022059dbc264f27507cd1ffc")
+  val walletAddress = Subject("0x31b26e43651e9371c88af3d36c14cfd938baf4fd")
+  val canonicalAddress = Subject("0x31b26E43651e9371C88aF3D36c14CfD938BaF4Fd")
+  val otherAddress = Subject("0xef678007d18427e6022059dbc264f27507cd1ffc")
+  val wrongFormatAddress = Subject("ef678007d18427e6022059dbc264f27507cd1ffc")
 }
 
 
@@ -87,10 +87,10 @@ class AuthSpec
 
   tsecWindowsFix()
 
-  def passValidAddress: MatchResult[Any] = dsl.validateAddress(walletAddress) must returnValue(canonicalAddress)
+  def passValidAddress: MatchResult[Any] = dsl.validateSubject(walletAddress) must returnValue(canonicalAddress)
 
   def rejectWrongAddress: MatchResult[Any] =
-    dsl.validateAddress(wrongFormatAddress) must returnError[Address, BadRequestError]
+    dsl.validateSubject(wrongFormatAddress) must returnError[Subject, BadRequestError]
 
   def passValidSignature: MatchResult[Any] =
     dsl.validateMessage(msg, signature, walletAddress) must returnValue(())
