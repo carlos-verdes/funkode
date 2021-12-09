@@ -11,16 +11,18 @@ import java.security._
 import java.util.UUID
 
 import cats.effect.{IO, MonadThrow, Sync}
-import cats.tagless.{autoFunctorK, autoSemigroupalK, finalAlg}
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
+import cats.tagless.{autoFunctorK, autoSemigroupalK, finalAlg}
+import io.circe.{Decoder, Encoder}
 import io.estatico.newtype.macros.newtype
-import org.web3j.crypto.{ECDSASignature, Hash, Keys}
 import org.web3j.crypto.Keys.toChecksumAddress
 import org.web3j.crypto.Sign.{SignatureData, recoverFromSignature}
+import org.web3j.crypto.{ECDSASignature, Hash, Keys}
 import org.web3j.utils.Numeric.hexStringToByteArray
+import pureconfig.generic.auto._
 import pureconfig.ConfigSource
 import tsec.jws.mac.JWTMac
 import tsec.jwt.JWTClaims
@@ -57,7 +59,6 @@ object auth {
   object evmJwt {
 
     import error._
-    import pureconfig.generic.auto._
     import tsec.common._
 
     val ETH_ADDRESS_REGEX = "^0x[0-9a-f]{40}$".r
@@ -156,4 +157,15 @@ object auth {
 
     tsecWindowsFix()
   }
+
+  implicit val nonceJsonEncoder: Encoder[Nonce] = Encoder[String].contramap(_.value)
+  implicit val nonceJsonDecoder: Decoder[Nonce] = Decoder[String].emap(s => Right(Nonce(s)))
+  implicit val subjectJsonEncoder: Encoder[Subject] = Encoder[String].contramap(_.value)
+  implicit val subjectJsonDecoder: Decoder[Subject] = Decoder[String].emap(s => Right(Subject(s)))
+  implicit val tokenJsonEncoder: Encoder[Token] = Encoder[String].contramap(_.value)
+  implicit val tokenJsonDecoder: Decoder[Token] = Decoder[String].emap(s => Right(Token(s)))
+  implicit val messageJsonEncoder: Encoder[Message] = Encoder[String].contramap(_.value)
+  implicit val messageJsonDecoder: Decoder[Message] = Decoder[String].emap(s => Right(Message(s)))
+  implicit val signatureJsonEncoder: Encoder[Signature] = Encoder[String].contramap(_.value)
+  implicit val signatureJsonDecoder: Decoder[Signature] = Decoder[String].emap(s => Right(Signature(s)))
 }

@@ -10,6 +10,7 @@ import java.security.{NoSuchAlgorithmException, SecureRandom, Security}
 
 import cats.effect.IO
 import cats.implicits.catsSyntaxFlatMapOps
+import io.funkode.rest
 import org.specs2.Specification
 import org.specs2.matcher.{IOMatchers, MatchResult, RestMatchers}
 import org.specs2.specification.core.SpecStructure
@@ -32,7 +33,7 @@ trait MessagesAndSignatures {
 
   val msg = Message("v0G9u7huK4mJb2K1")
 
-  val signature = Signature("0x2c6401216c9031b9a6fb8cbfccab4fcec6c951cdf40e2320108d1856eb532250576865fbcd452bcdc4c573" +
+  val validSig = Signature("0x2c6401216c9031b9a6fb8cbfccab4fcec6c951cdf40e2320108d1856eb532250576865fbcd452bcdc4c573" +
       "21b619ed7a9cfd38bd973c3e1e0243ac2777fe9d5b01")
 
   val signature2 = Signature("0x2c6401216c9031b9a6fb8cbfccab4fcec6c951cdf40e2320108d1856eb532250576865fbcd452bcdc4c57" +
@@ -44,11 +45,22 @@ trait MessagesAndSignatures {
   val wrongFormatAddress = Subject("ef678007d18427e6022059dbc264f27507cd1ffc")
 }
 
+trait AuthTerms {
+
+  import rest.auth._
+
+  val nonce = Nonce("nonce")
+  val subject = Subject("subject")
+  val token = Token("token")
+  val message = Message("message")
+  val signature = Signature("signature")
+}
 
 class AuthSpec
     extends Specification
     with JwtClaims
     with MessagesAndSignatures
+    with AuthTerms
     with RestMatchers[IO]
     with IOMatchers {
 
@@ -63,6 +75,13 @@ class AuthSpec
         Reject wrong signataure       $rejectWrongSignature
         Create a token from claim and get back    $createValidToken
         Raise error if token doesn't have subject $noSubjectError
+
+        <br/>Codecs should: <br/>
+        Encode / Decode nonce $encodeDecodeNonce
+        Encode / Decode subject $encodeDecodeSubject
+        Encode / Decode token $encodeDecodeToken
+        Encode / Decode message $encodeDecodeMessage
+        Encode / Decode signature $encodeDecodeSignature
         """
 
   import error._
@@ -93,11 +112,26 @@ class AuthSpec
     dsl.validateSubject(wrongFormatAddress) must returnError[Subject, BadRequestError]
 
   def passValidSignature: MatchResult[Any] =
-    dsl.validateMessage(msg, signature, walletAddress) must returnValue(())
+    dsl.validateMessage(msg, validSig, walletAddress) must returnValue(())
 
   def rejectWrongSignature: MatchResult[Any] =
     dsl.validateMessage(msg, signature2, otherAddress) must returnError[Unit, ForbiddenError]
 
   def createValidToken: MatchResult[IO[Claim]] = (createToken(subj) >>= validateToken) must returnValue(expectedClaim)
   def noSubjectError: MatchResult[Any] = validateToken(tokenWihtoutSubject)  must returnError[Claim, ForbiddenError]
+
+  def encodeDecodeNonce: MatchResult[Any] =
+    nonceJsonDecoder.decodeJson(nonceJsonEncoder.apply(nonce)) must beRight(nonce)
+
+  def encodeDecodeSubject: MatchResult[Any] =
+    subjectJsonDecoder.decodeJson(subjectJsonEncoder.apply(subject)) must beRight(subject)
+
+  def encodeDecodeToken: MatchResult[Any] =
+    tokenJsonDecoder.decodeJson(tokenJsonEncoder.apply(token)) must beRight(token)
+
+  def encodeDecodeMessage: MatchResult[Any] =
+    messageJsonDecoder.decodeJson(messageJsonEncoder.apply(message)) must beRight(message)
+
+  def encodeDecodeSignature: MatchResult[Any] =
+    signatureJsonDecoder.decodeJson(signatureJsonEncoder.apply(signature)) must beRight(signature)
 }

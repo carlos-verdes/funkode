@@ -48,14 +48,14 @@ class AuthCodecsSpec
     nonceDecoder.decode(nonceEncoder.encode(nonce)) must beRight(nonce)
 
   def encodeDecodeSubject: MatchResult[Any] =
-    nonceDecoder.decode(subjectEncoder.encode(subject)) must beRight(subject)
+    subjectDecoder.decode(subjectEncoder.encode(subject)) must beRight(subject)
 
   def encodeDecodeToken: MatchResult[Any] =
-    nonceDecoder.decode(tokenEncoder.encode(token)) must beRight(token)
+    tokenDecoder.decode(tokenEncoder.encode(token)) must beRight(token)
 
   def encodeDecodeMessage: MatchResult[Any] =
-    nonceDecoder.decode(messageEncoder.encode(message)) must beRight(message)
+    messageDecoder.decode(messageEncoder.encode(message)) must beRight(message)
 
   def encodeDecodeSignature: MatchResult[Any] =
-    nonceDecoder.decode(signatureEncoder.encode(signature)) must beRight(signature)
+    signatureDecoder.decode(signatureEncoder.encode(signature)) must beRight(signature)
 }
