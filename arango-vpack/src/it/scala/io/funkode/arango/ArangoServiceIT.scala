@@ -11,8 +11,10 @@ import avokka.arangodb.ArangoConfiguration
 import avokka.arangodb.fs2.Arango
 import avokka.velocypack.{VPackDecoder, VPackEncoder}
 import cats.effect.IO
+import cats.implicits.{catsSyntaxOptionId, toTraverseOps}
 import com.whisk.docker.impl.spotify._
 import com.whisk.docker.specs2.DockerTestKit
+import io.funkode.rest.query.QueryResult
 import org.http4s._
 import org.http4s.implicits._
 import org.specs2.Specification
@@ -34,12 +36,13 @@ trait InterpretersAndDsls extends IOMatchersWithLogger {
   val arangoConfig = ArangoConfiguration.load()
   val arangoResource = Arango(arangoConfig)
 
-  implicit val storeDsl: HttpStoreDsl[IO, VPackEncoder, VPackDecoder] = new ArangoStore(arangoResource)
+  implicit val storeDsl: HttpStoreWithQueryDsl[IO, VPackEncoder, VPackDecoder] = new ArangoStore(arangoResource)
   //implicit val securityDsl: SecurityAlgebra[IO] = ioJwtSecurityInterpreter
 }
 
 trait MockServiceWithArango extends InterpretersAndDsls {
 
+  import rest.query._
   import rest.resource._
 
   case class Mock(id: String, user: String, age: Int)
@@ -51,6 +54,9 @@ trait MockServiceWithArango extends InterpretersAndDsls {
   implicit val personDecoder: VPackDecoder[Person] = VPackDecoder.gen
 
   val mocksUri = uri"/mocks"
+  val mocksBatchCol = "mocksBatch"
+  val mocksBatchUri = uri"/" / mocksBatchCol
+
   val mock1 = HttpResource(mocksUri / "aaa", Mock("aaa123", "Pizza", 21))
   val mock2 = HttpResource(mocksUri / "bbb", Mock("bbb", "Pasta", 10))
   val mock3 = HttpResource(mocksUri / "ccc", Mock("ccc", "Gazpacho", 10))
@@ -59,6 +65,15 @@ trait MockServiceWithArango extends InterpretersAndDsls {
   val person1 = HttpResource(uri"/person/roget" , Person("Roger"))
   val person2 = HttpResource(uri"/person/that", Person("That"))
   val likes = "likes"
+
+
+  val mockBatch1 = HttpResource(mocksBatchUri / "batch1", Mock("batch1", "Pizza", 21))
+  val mockBatch2 = HttpResource(mocksBatchUri / "batch2", Mock("batch2", "Pasta", 10))
+  val mockBatch3 = HttpResource(mocksBatchUri / "batch3", Mock("batch3", "Gazpacho", 10))
+  val mockBatch4 = HttpResource(mocksBatchUri / "batch4", Mock("batch4", "Salad", 10))
+
+  val mocksBatchRes = Vector(mockBatch1, mockBatch2, mockBatch3, mockBatch4)
+  val mocksBatch = mocksBatchRes.map(_.body)
 
   def storeAndFetch[R: VPackEncoder : VPackDecoder](
       mockResource: HttpResource[R])(
@@ -98,6 +113,19 @@ trait MockServiceWithArango extends InterpretersAndDsls {
       _ <- store[R](right)
       _ <- linkResources(left, right, linkRel)
     } yield ()
+  }
+
+  def storeAndQueryCol[R: VPackEncoder : VPackDecoder](
+      resources: Vector[HttpResource[R]],
+      collection: String)(
+      implicit dsl: VPackStoreDsl[IO]): IO[QueryResult[R]] = {
+
+    import dsl._
+
+    for {
+      _ <- resources.traverse(r => store[R](r))
+      queryResult <- query[R](s"FOR m in $collection LIMIT 2 RETURN m", 2L.some)
+    } yield queryResult
   }
 
   def fetchFromArango[R : VPackDecoder](
@@ -266,6 +294,7 @@ class ArangoServiceIT(env: Env)
       Store and update from ArangoDB                          $storeAndUpdate
       Store and link two resources                            $storeAndLinkResources
       Return not found error when document doesn't exist      $returnNotFound
+      Store and query                                         $storeAndQueryTest
       //Store a resource using HTTP API                         storeResource
 
   """
@@ -287,7 +316,14 @@ class ArangoServiceIT(env: Env)
 
   def returnNotFound: MatchResult[Any] =
     fetchFromArango[Mock](uri"/emptyCollection/123") must returnError[Mock, NotFoundError]
-/*
+
+  def storeAndQueryTest: MatchResult[Any] =
+    (storeAndQueryCol[Mock](mocksBatchRes, mocksBatchCol) must returnValue { (queryResult: QueryResult[Mock]) =>
+      (queryResult.results must haveSize(2)) and
+          (queryResult.results must containAnyOf(mocksBatch))
+    })
+
+  /*
   def storeResource: MatchResult[Any] =
     (userService.orNotFound(createUserRequest) must returnValue { (response: Response[IO]) =>
       response must haveStatus(Created) and

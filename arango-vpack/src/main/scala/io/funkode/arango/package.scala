@@ -24,7 +24,7 @@ package object arango {
   import rest.error._
   import rest.store._
 
-  type VPackStoreDsl[F[_]] = HttpStoreDsl[F, VPackEncoder, VPackDecoder]
+  type VPackStoreDsl[F[_]] = HttpStoreWithQueryDsl[F, VPackEncoder, VPackDecoder]
 
   val RESOURCE_RELS_GRAPH = "resource-rels"
 
