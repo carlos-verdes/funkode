@@ -75,6 +75,7 @@ class AuthSpec
         Reject wrong signataure       $rejectWrongSignature
         Create a token from claim and get back    $createValidToken
         Raise error if token doesn't have subject $noSubjectError
+        Create different nonce        $createTwoNonce
 
         <br/>Codecs should: <br/>
         Encode / Decode nonce $encodeDecodeNonce
@@ -119,6 +120,18 @@ class AuthSpec
 
   def createValidToken: MatchResult[IO[Claim]] = (createToken(subj) >>= validateToken) must returnValue(expectedClaim)
   def noSubjectError: MatchResult[Any] = validateToken(tokenWihtoutSubject)  must returnError[Claim, ForbiddenError]
+
+  def createTwoNonce: MatchResult[Any] = {
+    val twoNonces =
+      for {
+        nonce1 <- dsl.createNonce(subj)
+        nonce2 <- dsl.createNonce(subj)
+      } yield (nonce1, nonce2)
+
+    twoNonces must returnValue {
+      (t: (Nonce, Nonce)) => t._1 mustNotEqual(t._2)
+    }
+  }
 
   def encodeDecodeNonce: MatchResult[Any] =
     nonceJsonDecoder.decodeJson(nonceJsonEncoder.apply(nonce)) must beRight(nonce)

@@ -27,8 +27,8 @@ val testLibraries = Seq(specs2Core, specs2Cats)
 val dockerLibraries = Seq(dockerTestConfig, dockerTestSpecs2, dockerTestSpotify)
 val javaxLibraries = Seq(javaxBind, javaxActivation, jaxbCore, jaxbImpl)
 
-val restLibs = codeLibraries ++ secLibraries ++ logLibraries ++ testLibraries ++ javaxLibraries
-val arangoLibs = avokkaLibraries ++ logLibraries ++ testLibraries ++ dockerLibraries
+val restLibs = codeLibraries ++ secLibraries ++ logLibraries ++ testLibraries
+val arangoLibs = avokkaLibraries ++ logLibraries ++ testLibraries ++ dockerLibraries ++ javaxLibraries
 
 lazy val rest = (project in file("rest"))
   .configs(IntegrationTest)
@@ -71,8 +71,7 @@ lazy val funkode = (project in file("."))
     .aggregate(rest, arangoVpack)
     .settings(
       publishArtifact := false,
-      publish / skip := true
-    )
+      publish / skip := true)
 
 addCommandAlias("prepare", ";clean ;headerCreate ;publishSigned")
 addCommandAlias("sanity", ";clean ;compile ;scalastyle ;coverage ;test ;it:test ;coverageOff ;coverageReport ;project")
@@ -87,7 +86,7 @@ ThisBuild / publishTo := {
   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
-ThisBuild / credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials")
+// ThisBuild / credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials")
 
 import xerial.sbt.Sonatype._
 ThisBuild / sonatypeProjectHosting := Some(GitHubHosting("carlos-verdes", "funkode", "cverdes@gmail.com"))

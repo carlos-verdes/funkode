@@ -6,11 +6,11 @@
 
 package io.funkode
 
-import avokka.arangodb.{ArangoCollection, ArangoGraph}
 import avokka.arangodb.models.CollectionCreate.KeyOptions
 import avokka.arangodb.models.GraphInfo.{GraphEdgeDefinition, GraphRepresentation}
 import avokka.arangodb.models.{CollectionInfo, CollectionType}
 import avokka.arangodb.protocol.{ArangoClient, ArangoError, ArangoResponse}
+import avokka.arangodb.{ArangoCollection, ArangoGraph}
 import avokka.velocypack.{VObject, VPack, VPackDecoder, VPackEncoder, VPackError}
 import cats.MonadThrow
 import cats.implicits.toFlatMapOps
@@ -24,7 +24,7 @@ package object arango {
   import rest.error._
   import rest.store._
 
-  type VPackStoreDsl[F[_]] = HttpStoreDsl[F, VPackEncoder, VPackDecoder]
+  type VPackStoreDsl[F[_]] = HttpStoreWithQueryDsl[F, VPackEncoder, VPackDecoder]
 
   val RESOURCE_RELS_GRAPH = "resource-rels"
 
@@ -85,7 +85,7 @@ package object arango {
   def handleArangoErrors[F[_], R](effect: F[R])(implicit F: MonadThrow[F]): F[R] = {
     effect.flatMap(_ match {
       case ArangoResponse(_, ar: ArangoError) => arangoErrorToRestError(ar)
-      case _ => effect
+      case result => F.pure(result)
     })
   }
 
@@ -94,7 +94,7 @@ package object arango {
     def handleErrors(): F[R] = F.handleErrorWith(arangoResponse.map(_.body))(arangoErrorToRestError[F, R])
   }
 
-  def arangoErrorToRestError[F[_], R](arangoError: Throwable)(implicit F: MonadThrow[F]): F[R] = {
+  def arangoErrorToRestError[F[_], R](arangoError: Throwable)(implicit F: MonadThrow[F]): F[R] =
     F.raiseError(
       arangoError match {
         case ArangoError.Response(ArangoResponse.Header(_, _, Status.BadRequest.code, _), _) =>
@@ -106,5 +106,4 @@ package object arango {
         case vPackError: VPackError =>
           BadRequestError(None, s"Error coding/decoding VPack".some, vPackError.some)
       })
-  }
 }

@@ -11,6 +11,7 @@ import org.http4s.Uri
 
 object store {
 
+  import query._
   import resource._
 
   @finalAlg
@@ -27,4 +28,6 @@ object store {
     def linkResources[L, R](left: HttpResource[L], right: HttpResource[R], relType: String): F[Unit] =
       linkResources(left.uri, right.uri, relType)
   }
+
+  trait HttpStoreWithQueryDsl[F[_], Ser[_], Des[_]] extends HttpStoreDsl[F, Ser, Des] with QueryDsl[F, Des]
 }

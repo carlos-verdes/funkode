@@ -8,7 +8,9 @@ package io.funkode
 package arango
 
 import avokka.arangodb.fs2.Arango
+import avokka.arangodb.models.Cursor
 import avokka.arangodb.models.GraphInfo.GraphEdgeDefinition
+import avokka.arangodb.protocol.ArangoRequest.PUT
 import avokka.arangodb.types.{CollectionName, DocumentKey}
 import avokka.velocypack.{VObject, VPack, VPackDecoder, VPackEncoder}
 import cats.MonadThrow
@@ -24,8 +26,10 @@ import org.http4s.implicits.http4sLiteralsSyntax
 
 class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) extends VPackStoreDsl[F] {
 
+  import ArangoStore._
   import ColKey._
   import rest.error._
+  import rest.query._
   import rest.resource._
 
   def execute[R](command: (Arango[F]) => F[R]): F[R] = handleArangoErrors(clientR.use(command))
@@ -68,6 +72,27 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
         _ <- updateGraphDefinition(edgeDefinition)
       } yield ()
     }
+
+  override def query[R](
+      queryString: String,
+      batchSize: Option[Long],
+      cursor: Option[String])(
+      implicit deserializer: VPackDecoder[R]): F[QueryResult[R]] =
+
+    execute { client => {
+
+      val results = cursor match {
+        case Some(id) => client.execute[Cursor[R]](PUT(client.db.name, s"/_api/cursor/${id}"))
+        case None => client.db.query(queryString).batchSize(batchSize.getOrElse(DEFAULT_BATCH_SIZE)).execute[R]
+      }
+
+      results.handleErrors().map((cursor: Cursor[R]) => QueryResult(cursor.result, cursor.id))
+  }}
+}
+
+object ArangoStore {
+
+  val DEFAULT_BATCH_SIZE = 10L
 }
 
 case class ColKeyOp(collectionName: CollectionName, key: Option[DocumentKey])
