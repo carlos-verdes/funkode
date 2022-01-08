@@ -142,6 +142,7 @@ object auth {
     object ioEvmJwtSecurityInterpreter extends JwtSecurityInterpreter[IO]
 
     // Windows hack
+    // $COVERAGE-OFF$
     private def tsecWindowsFix(): Unit =
       try {
         SecureRandom.getInstance("NativePRNGNonBlocking")
@@ -156,6 +157,7 @@ object auth {
       }
 
     tsecWindowsFix()
+    // $COVERAGE-ON$
   }
 
   implicit val nonceJsonEncoder: Encoder[Nonce] = Encoder[String].contramap(_.value)

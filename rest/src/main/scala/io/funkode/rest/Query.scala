@@ -19,7 +19,7 @@ object query {
   trait QueryDsl[F[_], Des[_]] {
 
     def query[R](
-        query: String,
+        queryString: String,
         batchSize: Option[Long] = None,
         cursor: Option[String] = None)(
         implicit deserializer: Des[R]): F[QueryResult[R]]

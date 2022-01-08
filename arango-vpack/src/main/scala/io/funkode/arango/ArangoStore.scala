@@ -8,8 +8,10 @@ package io.funkode
 package arango
 
 import avokka.arangodb.fs2.Arango
+import avokka.arangodb.models.Cursor
 import avokka.arangodb.models.GraphInfo.GraphEdgeDefinition
-import avokka.arangodb.types.{CollectionName, DocumentKey, TransactionId}
+import avokka.arangodb.protocol.ArangoRequest.PUT
+import avokka.arangodb.types.{CollectionName, DocumentKey}
 import avokka.velocypack.{VObject, VPack, VPackDecoder, VPackEncoder}
 import cats.MonadThrow
 import cats.effect.{Resource, Sync}
@@ -72,21 +74,20 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
     }
 
   override def query[R](
-      query: String,
+      queryString: String,
       batchSize: Option[Long],
       cursor: Option[String])(
       implicit deserializer: VPackDecoder[R]): F[QueryResult[R]] =
 
     execute { client => {
 
-      val arangoQuery = client.db.query(query).batchSize(batchSize.getOrElse(DEFAULT_BATCH_SIZE))
-      val queryWithCursor = cursor.map(c => arangoQuery.transaction(TransactionId(c))).getOrElse(arangoQuery)
+      val results = cursor match {
+        case Some(id) => client.execute[Cursor[R]](PUT(client.db.name, s"/_api/cursor/${id}"))
+        case None => client.db.query(queryString).batchSize(batchSize.getOrElse(DEFAULT_BATCH_SIZE)).execute[R]
+      }
 
-      for {
-        queryResult <- queryWithCursor.execute[R].handleErrors()
-      } yield QueryResult(queryResult.result, queryResult.id)
-    }
-  }
+      results.handleErrors().map((cursor: Cursor[R]) => QueryResult(cursor.result, cursor.id))
+  }}
 }
 
 object ArangoStore {

@@ -115,18 +115,22 @@ trait MockServiceWithArango extends InterpretersAndDsls {
     } yield ()
   }
 
-  def storeAndQueryCol[R: VPackEncoder : VPackDecoder](
-      resources: Vector[HttpResource[R]],
-      collection: String)(
+  def storeResources[R: VPackEncoder : VPackDecoder](
+      resources: Vector[HttpResource[R]])(
+      implicit dsl: VPackStoreDsl[IO]): IO[Unit] =
+    resources.traverse(r => dsl.store[R](r)).map(_ => ())
+
+
+  def queryCol[R: VPackDecoder](
+      collection: String,
+      batchSize: Option[Long] = Some(2),
+      cursor: Option[String] = None)(
       implicit dsl: VPackStoreDsl[IO]): IO[QueryResult[R]] = {
 
-    import dsl._
-
-    for {
-      _ <- resources.traverse(r => store[R](r))
-      queryResult <- query[R](s"FOR m in $collection LIMIT 2 RETURN m", 2L.some)
-    } yield queryResult
+    println(s">> queryCol $collection with cursor: ${cursor}")
+    dsl.query[R](s"FOR m in $collection RETURN m", batchSize, cursor)
   }
+
 
   def fetchFromArango[R : VPackDecoder](
       uri: Uri)(
@@ -318,10 +322,22 @@ class ArangoServiceIT(env: Env)
     fetchFromArango[Mock](uri"/emptyCollection/123") must returnError[Mock, NotFoundError]
 
   def storeAndQueryTest: MatchResult[Any] =
-    (storeAndQueryCol[Mock](mocksBatchRes, mocksBatchCol) must returnValue { (queryResult: QueryResult[Mock]) =>
-      (queryResult.results must haveSize(2)) and
-          (queryResult.results must containAnyOf(mocksBatch))
-    })
+    (storeResources[Mock](mocksBatchRes) must returnOk[Unit]) and
+        (queryCol[Mock](mocksBatchCol) must returnValue { (queryResult: QueryResult[Mock]) =>
+
+          (queryResult.results must haveSize(2)) and
+              (queryResult.results must containAnyOf(mocksBatch)) and
+              (queryResult.cursor mustNotEqual(None)) and {
+
+            queryCol[Mock](mocksBatchCol, 2L.some, queryResult.cursor) must returnValue {
+              (secondQueryResult: QueryResult[Mock]) =>
+
+                (secondQueryResult.results must haveSize(2)) and
+                    (secondQueryResult.results must containAnyOf(mocksBatch)) and
+                    (secondQueryResult.cursor mustEqual(None))
+            }
+          }
+        })
 
   /*
   def storeResource: MatchResult[Any] =

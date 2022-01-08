@@ -55,9 +55,9 @@ object Dependencies {
     val dockerTestConfig   = "com.whisk"        %% "docker-testkit-config"       % Versions.dockerTestV
     val dockerTestSpecs2   = "com.whisk"        %% "docker-testkit-specs2"       % Versions.dockerTestV % "it, test"
     val dockerTestSpotify  = "com.whisk"        %% "docker-testkit-impl-spotify" % Versions.dockerTestV % "it, test"
-    val javaxActivation    = "javax.activation" %  "activation"                  % "1.1.1" % "it"
-    val javaxBind          = "javax.xml.bind"   %  "jaxb-api"                    % "2.3.0" % "it"
-    val jaxbCore           = "com.sun.xml.bind" %  "jaxb-core"                   % "2.3.0" % "it"
-    val jaxbImpl           = "com.sun.xml.bind" %  "jaxb-impl"                   % "2.3.0" % "it"
+    val javaxActivation    = "javax.activation" %  "activation"                  % "1.1.1" % "it, test"
+    val javaxBind          = "javax.xml.bind"   %  "jaxb-api"                    % "2.3.0" % "it, test"
+    val jaxbCore           = "com.sun.xml.bind" %  "jaxb-core"                   % "2.3.0" % "it, test"
+    val jaxbImpl           = "com.sun.xml.bind" %  "jaxb-impl"                   % "2.3.0" % "it, test"
   }
 }
