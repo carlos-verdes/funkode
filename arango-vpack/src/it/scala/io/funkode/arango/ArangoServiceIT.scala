@@ -11,7 +11,7 @@ import avokka.arangodb.ArangoConfiguration
 import avokka.arangodb.fs2.Arango
 import avokka.velocypack.{VPackDecoder, VPackEncoder}
 import cats.effect.IO
-import cats.implicits.{catsSyntaxOptionId, toTraverseOps}
+import cats.implicits.toTraverseOps
 import com.whisk.docker.impl.spotify._
 import com.whisk.docker.specs2.DockerTestKit
 import io.funkode.rest.query.QueryResult
@@ -123,14 +123,11 @@ trait MockServiceWithArango extends InterpretersAndDsls {
 
   def queryCol[R: VPackDecoder](
       collection: String,
-      batchSize: Option[Long] = Some(2),
-      cursor: Option[String] = None)(
+      batchSize: Option[Long] = Some(2))(
       implicit dsl: VPackStoreDsl[IO]): IO[QueryResult[R]] = {
 
-    println(s">> queryCol $collection with cursor: ${cursor}")
-    dsl.query[R](s"FOR m in $collection RETURN m", batchSize, cursor)
+    dsl.query[R](s"FOR m in $collection RETURN m", batchSize)
   }
-
 
   def fetchFromArango[R : VPackDecoder](
       uri: Uri)(
@@ -327,14 +324,14 @@ class ArangoServiceIT(env: Env)
 
           (queryResult.results must haveSize(2)) and
               (queryResult.results must containAnyOf(mocksBatch)) and
-              (queryResult.cursor mustNotEqual(None)) and {
+              (queryResult.next mustNotEqual(None)) and {
 
-            queryCol[Mock](mocksBatchCol, 2L.some, queryResult.cursor) must returnValue {
+            storeDsl.next[Mock](queryResult.next.get) must returnValue {
               (secondQueryResult: QueryResult[Mock]) =>
 
                 (secondQueryResult.results must haveSize(2)) and
                     (secondQueryResult.results must containAnyOf(mocksBatch)) and
-                    (secondQueryResult.cursor mustEqual(None))
+                    (secondQueryResult.next mustEqual(None))
             }
           }
         })
