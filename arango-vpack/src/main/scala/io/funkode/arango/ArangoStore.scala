@@ -18,6 +18,7 @@ import cats.effect.{Resource, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
+import io.funkode.rest.query.QueryResult
 import org.http4s.Uri
 import org.http4s.Uri.Path.Root
 import org.http4s.dsl.io./
@@ -73,26 +74,32 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
       } yield ()
     }
 
-  override def query[R](
-      queryString: String,
-      batchSize: Option[Long],
-      cursor: Option[String])(
-      implicit deserializer: VPackDecoder[R]): F[QueryResult[R]] =
+  override def query[R](queryString: String, batchSize: Option[Long])(implicit D: VPackDecoder[R]): F[QueryResult[R]] =
+    execute { client => {
+      for {
+        exec <- client.db.query(queryString).batchSize(batchSize.getOrElse(DEFAULT_BATCH_SIZE)).execute.handleErrors()
+      } yield toQueryResult(exec)
+  }}
+
+  override def next[R](cursor: Uri)(implicit D: VPackDecoder[R]): F[QueryResult[R]] =
 
     execute { client => {
 
-      val results = cursor match {
-        case Some(id) => client.execute[Cursor[R]](PUT(client.db.name, s"/_api/cursor/${id}"))
-        case None => client.db.query(queryString).batchSize(batchSize.getOrElse(DEFAULT_BATCH_SIZE)).execute[R]
-      }
-
-      results.handleErrors().map((cursor: Cursor[R]) => QueryResult(cursor.result, cursor.id))
-  }}
+      for {
+        ColKey(col, key) <- ColKey.fromUri(cursor)
+        //_ <- if (col != DEFAULT_QUERY_COL) F.raiseError[QueryResult[R]](notFoundError(s"Query not found $cursor"))
+        exec <- client.execute[Cursor[R]](PUT(client.db.name, s"/_api/cursor/${key}")).handleErrors()
+      } yield toQueryResult(exec)
+    }}
 }
 
 object ArangoStore {
 
   val DEFAULT_BATCH_SIZE = 10L
+  val DEFAULT_QUERY_COL = CollectionName("queries")
+
+  def toQueryResult[R](cursor: Cursor[R], queryCol: CollectionName = DEFAULT_QUERY_COL): QueryResult[R] =
+    QueryResult(cursor.result, cursor.id.map(id => uri"/" / queryCol.repr/ id))
 }
 
 case class ColKeyOp(collectionName: CollectionName, key: Option[DocumentKey])
