@@ -7,17 +7,18 @@
 package io.funkode
 package arango
 
-import avokka.arangodb.fs2.Arango
+import avokka.arangodb.fs2._
 import avokka.arangodb.models.Cursor
 import avokka.arangodb.models.GraphInfo.GraphEdgeDefinition
 import avokka.arangodb.protocol.ArangoRequest.PUT
-import avokka.arangodb.types.{CollectionName, DocumentKey}
+import avokka.arangodb.types._
 import avokka.velocypack.{VObject, VPack, VPackDecoder, VPackEncoder}
 import cats.MonadThrow
 import cats.effect.{Resource, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
+import fs2.Stream
 import io.funkode.rest.query.QueryResult
 import org.http4s.Uri
 import org.http4s.Uri.Path.Root
@@ -79,18 +80,34 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
       for {
         exec <- client.db.query(queryString).batchSize(batchSize.getOrElse(DEFAULT_BATCH_SIZE)).execute.handleErrors()
       } yield toQueryResult(exec)
-  }}
+    }}
 
   override def next[R](cursor: Uri)(implicit D: VPackDecoder[R]): F[QueryResult[R]] =
-
     execute { client => {
 
       for {
-        ColKey(col, key) <- ColKey.fromUri(cursor)
+        ColKey(_, key) <- ColKey.fromUri(cursor)
         //_ <- if (col != DEFAULT_QUERY_COL) F.raiseError[QueryResult[R]](notFoundError(s"Query not found $cursor"))
         exec <- client.execute[Cursor[R]](PUT(client.db.name, s"/_api/cursor/${key}")).handleErrors()
       } yield toQueryResult(exec)
     }}
+
+  override def queryStream[R](
+      queryString: String,
+      chunkSize: Option[Long])(
+      implicit deserializer: VPackDecoder[R]): fs2.Stream[F, R] = {
+
+    val queryResource = clientR.map((client: Arango[F]) => {
+      client
+          .db
+          .query(queryString)
+          .batchSize(chunkSize.getOrElse(DEFAULT_BATCH_SIZE))
+          .stream[R]
+          .handleErrorWith(t => fs2.Stream.eval(arangoErrorToRestError(t)))
+    })
+
+    Stream.resource(queryResource).flatten
+  }
 }
 
 object ArangoStore {
