@@ -54,8 +54,10 @@ trait MockServiceWithArango extends InterpretersAndDsls {
   implicit val personDecoder: VPackDecoder[Person] = VPackDecoder.gen
 
   val mocksUri = uri"/mocks"
-  val mocksBatchCol = "mocksBatch"
-  val mocksBatchUri = uri"/" / mocksBatchCol
+  val mocksBatch1Col = "mocksBatch1"
+  val mocksBatch2Col = "mocksBatch2"
+  val mocksBatch1Uri = uri"/" / mocksBatch1Col
+  val mocksBatch2Uri = uri"/" / mocksBatch2Col
 
   val mock1 = HttpResource(mocksUri / "aaa", Mock("aaa123", "Pizza", 21))
   val mock2 = HttpResource(mocksUri / "bbb", Mock("bbb", "Pasta", 10))
@@ -67,13 +69,19 @@ trait MockServiceWithArango extends InterpretersAndDsls {
   val likes = "likes"
 
 
-  val mockBatch1 = HttpResource(mocksBatchUri / "batch1", Mock("batch1", "Pizza", 21))
-  val mockBatch2 = HttpResource(mocksBatchUri / "batch2", Mock("batch2", "Pasta", 10))
-  val mockBatch3 = HttpResource(mocksBatchUri / "batch3", Mock("batch3", "Gazpacho", 10))
-  val mockBatch4 = HttpResource(mocksBatchUri / "batch4", Mock("batch4", "Salad", 10))
+  val mock1Batch1 = HttpResource(mocksBatch1Uri / "batch1.1", Mock("batch1.1", "Pizza", 21))
+  val mock2Batch1 = HttpResource(mocksBatch1Uri / "batch1.2", Mock("batch1.2", "Pasta", 10))
+  val mock3Batch1 = HttpResource(mocksBatch1Uri / "batch1.3", Mock("batch1.3", "Gazpacho", 10))
+  val mock4Batch1 = HttpResource(mocksBatch1Uri / "batch1.4", Mock("batch1.4", "Salad", 10))
+  val mock1Batch2 = HttpResource(mocksBatch2Uri / "batch2.1", Mock("batch2.1", "Pizza", 21))
+  val mock2Batch2 = HttpResource(mocksBatch2Uri / "batch2.2", Mock("batch2.2", "Pasta", 10))
+  val mock3Batch2 = HttpResource(mocksBatch2Uri / "batch2.3", Mock("batch2.3", "Gazpacho", 10))
+  val mock4Batch2 = HttpResource(mocksBatch2Uri / "batch2.4", Mock("batch2.4", "Salad", 10))
 
-  val mocksBatchRes = Vector(mockBatch1, mockBatch2, mockBatch3, mockBatch4)
-  val mocksBatch = mocksBatchRes.map(_.body)
+  val mocksBatch1Res = Vector(mock1Batch1, mock2Batch1, mock3Batch1, mock4Batch1)
+  val mocksBatch2Res = Vector(mock1Batch2, mock2Batch2, mock3Batch2, mock4Batch2)
+  val mocksBatch1 = mocksBatch1Res.map(_.body)
+  val mocksBatch2 = mocksBatch2Res.map(_.body)
 
   def storeAndFetch[R: VPackEncoder : VPackDecoder](
       mockResource: HttpResource[R])(
@@ -124,10 +132,13 @@ trait MockServiceWithArango extends InterpretersAndDsls {
   def queryCol[R: VPackDecoder](
       collection: String,
       batchSize: Option[Long] = Some(2))(
-      implicit dsl: VPackStoreDsl[IO]): IO[QueryResult[R]] = {
-
+      implicit dsl: VPackStoreDsl[IO]): IO[QueryResult[R]] =
     dsl.query[R](s"FOR m in $collection RETURN m", batchSize)
-  }
+
+  def queryColStream[R: VPackDecoder](
+      collection: String)(
+      implicit dsl: VPackStoreDsl[IO]): fs2.Stream[IO, R] =
+    dsl.queryStream[R](s"FOR m in $collection RETURN m")
 
   def fetchFromArango[R : VPackDecoder](
       uri: Uri)(
@@ -296,6 +307,7 @@ class ArangoServiceIT(env: Env)
       Store and link two resources                            $storeAndLinkResources
       Return not found error when document doesn't exist      $returnNotFound
       Store and query                                         $storeAndQueryTest
+      Store and query stream                                  $storeAndQueryStreamTest
       //Store a resource using HTTP API                         storeResource
 
   """
@@ -319,23 +331,26 @@ class ArangoServiceIT(env: Env)
     fetchFromArango[Mock](uri"/emptyCollection/123") must returnError[Mock, NotFoundError]
 
   def storeAndQueryTest: MatchResult[Any] =
-    (storeResources[Mock](mocksBatchRes) must returnOk[Unit]) and
-        (queryCol[Mock](mocksBatchCol) must returnValue { (queryResult: QueryResult[Mock]) =>
+    (storeResources[Mock](mocksBatch1Res) must returnOk[Unit]) and
+        (queryCol[Mock](mocksBatch1Col) must returnValue { (queryResult: QueryResult[Mock]) =>
 
           (queryResult.results must haveSize(2)) and
-              (queryResult.results must containAnyOf(mocksBatch)) and
+              (queryResult.results must containAnyOf(mocksBatch1)) and
               (queryResult.next mustNotEqual(None)) and {
 
             storeDsl.next[Mock](queryResult.next.get) must returnValue {
               (secondQueryResult: QueryResult[Mock]) =>
 
                 (secondQueryResult.results must haveSize(2)) and
-                    (secondQueryResult.results must containAnyOf(mocksBatch)) and
+                    (secondQueryResult.results must containAnyOf(mocksBatch1)) and
                     (secondQueryResult.next mustEqual(None))
             }
           }
         })
 
+  def storeAndQueryStreamTest: MatchResult[Any] =
+    (storeResources[Mock](mocksBatch2Res) must returnOk[Unit]) and
+        (queryColStream[Mock](mocksBatch2Col).compile.toVector must returnValue(mocksBatch2))
   /*
   def storeResource: MatchResult[Any] =
     (userService.orNotFound(createUserRequest) must returnValue { (response: Response[IO]) =>

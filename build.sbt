@@ -3,6 +3,8 @@ import Libraries._
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.HeaderLicenseStyle
 import sbt.ThisBuild
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 ThisBuild / organization := "io.funkode"
 ThisBuild / scalaVersion := "2.13.6"
 ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
