@@ -11,7 +11,7 @@ import avokka.arangodb.models.GraphInfo.{GraphEdgeDefinition, GraphRepresentatio
 import avokka.arangodb.models.{CollectionInfo, CollectionType}
 import avokka.arangodb.protocol.{ArangoClient, ArangoError, ArangoResponse}
 import avokka.arangodb.{ArangoCollection, ArangoGraph}
-import avokka.velocypack.{VObject, VPack, VPackDecoder, VPackEncoder, VPackError}
+import avokka.velocypack.{VObject, VPack, VPackDecoder, VPackEncoder, VPackError, VString}
 import cats.MonadThrow
 import cats.implicits.toFlatMapOps
 import cats.syntax.functor._
@@ -26,7 +26,8 @@ package object arango {
 
   type VPackStoreDsl[F[_]] = HttpStoreWithQueryDsl[F, VPackEncoder, VPackDecoder]
 
-  val RESOURCE_RELS_GRAPH = "resource-rels"
+  val ATTRIBUTES_KEY = "attributes"
+  val RES_REL_GRAPH = "resourceRels"
 
   val logger = getLogger
 
@@ -47,7 +48,7 @@ package object arango {
       implicit client: ArangoClient[F],
       F: MonadThrow[F]): F[Unit] = {
 
-    val graph = ArangoGraph(client.db.name, RESOURCE_RELS_GRAPH)
+    val graph = ArangoGraph(client.db.name, RES_REL_GRAPH)
 
     for {
       edgeDefinitions <- getCreateGraph(graph).map(_.edgeDefinitions)
@@ -75,12 +76,14 @@ package object arango {
   def createEdge[F[_] : MonadThrow](collection: ArangoCollection[F]): F[CollectionInfo] =
     createCollection(collection, CollectionType.Edge)
 
-  def buildEdgeDoc(key: String, leftUri: Uri, rightUri: Uri): VPack =
+  def buildEdgeDoc(leftUri: Uri, rightUri: Uri, rel: String, attributes: Map[String, String]): VPack =
     VObject
         .empty
-        .updated("_key", key)
+        //.updated("_key", key)
         .updated("_from", leftUri.path.toString().substring(1))
         .updated("_to", rightUri.path.toString().substring(1))
+        .updated("_rel", rel)
+        .updated(ATTRIBUTES_KEY, VObject(attributes.view.mapValues(VString).toMap))
 
   def handleArangoErrors[F[_], R](effect: F[R])(implicit F: MonadThrow[F]): F[R] = {
     effect.flatMap(_ match {
@@ -95,15 +98,20 @@ package object arango {
   }
 
   def arangoErrorToRestError[F[_], R](arangoError: Throwable)(implicit F: MonadThrow[F]): F[R] =
-    F.raiseError(
+    F.raiseError({
       arangoError match {
         case ArangoError.Response(ArangoResponse.Header(_, _, Status.BadRequest.code, _), _) =>
+          logger.error(arangoError)("Arango Error, bad request")
           BadRequestError(None, None, arangoError.some)
         case ArangoError.Response(ArangoResponse.Header(_, _, Status.NotFound.code, _), _) =>
+          logger.trace(arangoError)("Arango Error, request not found")
           NotFoundError(None, None, arangoError.some)
         case ArangoError.Response(ArangoResponse.Header(_, _, Status.Conflict.code, _), _) =>
+          logger.trace(arangoError)("Arango Error, conflict request")
           ConflictError(None, None, arangoError.some)
         case vPackError: VPackError =>
+          logger.error(arangoError)("Arango Error, other error")
           BadRequestError(None, s"Error coding/decoding VPack".some, vPackError.some)
-      })
+      }
+    })
 }

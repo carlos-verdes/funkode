@@ -24,6 +24,7 @@ trait MockResources {
   import error._
   import resource._
   import store._
+  import syntax.all._
 
   case class Mock(id: Option[String], name: String, age: Int)
 
@@ -44,8 +45,11 @@ trait MockResources {
       (if (resourceUri == existingUri) HttpResource(newMockIdUri, existingMock.asInstanceOf[R]).pure[IO]
       else IO.raiseError[HttpResource[R]](NotFoundError(None, s"resource not found $resourceUri".some, None)))
 
-    override def linkResources(leftUri: Uri, rightUri: Uri, relType: String): IO[Unit] =
+    override def linkResources(leftUri: Uri, rightUri: Uri, relType: String, att: Map[String, String]): IO[Unit] =
       ().pure[IO]
+
+    override def getRelated[R](uri: Uri, relType: String)(implicit deser: Decoder[R]): fs2.Stream[IO, R] =
+      fs2.Stream.empty
   }
 
   val responseCreated: Response[IO] = HttpResource(existingUri, existingMock).created
@@ -68,6 +72,7 @@ class HttpStoreSpec
 
   import error._
   import resource._
+  import syntax.all._
 
   def store: MatchResult[Any] = mockStoreDsl.store[Mock](newMockIdUri, newMock).map(_.body) must returnValue(newMock)
   def fetchFound: MatchResult[Any] = mockStoreDsl.fetch[Mock](existingUri).map(_.body) must returnValue(existingMock)
