@@ -12,10 +12,10 @@ import cats.implicits.{toFlatMapOps, toFunctorOps}
 import io.circe.generic.auto._
 import io.funkode.rest.resource.REL_SELF
 import org.http4s._
+import org.http4s.implicits._
 import org.http4s.circe.CirceEntityCodec._
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.{Link, LinkValue, Location}
-import org.http4s.implicits.http4sLiteralsSyntax
 import org.specs2.Specification
 import org.specs2.matcher.{IOMatchers, MatchResult, RestMatchers}
 import org.specs2.specification.core.SpecStructure
@@ -24,6 +24,7 @@ trait SomeServices extends IOMatchers {
 
   import error._
   import resource._
+  import io.funkode.rest.syntax.all._
 
   case class Mock(name: String, age: Int)
   case class WrongRequest(surname: String)

@@ -15,6 +15,7 @@ import avokka.arangodb.types._
 import avokka.velocypack.{VObject, VPack, VPackDecoder, VPackEncoder}
 import cats.MonadThrow
 import cats.effect.{Resource, Sync}
+import cats.implicits.catsSyntaxApplicativeId
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
@@ -23,16 +24,20 @@ import io.funkode.rest.query.QueryResult
 import org.http4s.Uri
 import org.http4s.Uri.Path.Root
 import org.http4s.dsl.io./
+import org.http4s.headers.LinkValue
 import org.http4s.implicits.http4sLiteralsSyntax
 
 
 class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) extends VPackStoreDsl[F] {
 
+  import arango.RES_REL_GRAPH
   import ArangoStore._
   import ColKey._
+  import codecs.http4sCodecs._
   import rest.error._
   import rest.query._
   import rest.resource._
+  import rest.syntax.all._
 
   def execute[R](command: (Arango[F]) => F[R]): F[R] = handleArangoErrors(clientR.use(command))
 
@@ -55,30 +60,58 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
         ColKey(collectionName, key) <- ColKey.fromUri[F](resourceUri)
         collection = client.db.collection(collectionName)
         document <- collection.document(key).read[R]().handleErrors()
-      } yield HttpResource(resourceUri, document)
+        links <- getRelatedLinks(resourceUri)
+      } yield HttpResource(resourceUri, document).withLinks(links)
     }
 
-  override def linkResources(leftUri: Uri, rightUri: Uri, relType: String): F[Unit] =
+  override def linkResources(leftUri: Uri, rightUri: Uri, relType: String, attributes: Map[String, String]): F[Unit] =
     execute { client =>
 
       implicit val _client = client
 
       for {
-        ColKey(leftCol, leftKey) <- ColKey.fromUri[F](leftUri)
-        ColKey(rightCol, rightKey) <- ColKey.fromUri[F](rightUri)
+        ColKey(leftCol, _) <- ColKey.fromUri[F](leftUri)
+        ColKey(rightCol, _) <- ColKey.fromUri[F](rightUri)
         edge = client.db.collection(CollectionName(relType))
         _ <- edge.info().handleErrors().ifNotFound(createEdge(edge))
-        edgeDoc = buildEdgeDoc(leftKey.repr + "-" + rightKey.repr, leftUri, rightUri)
+        edgeDoc = buildEdgeDoc(leftUri, rightUri, relType, attributes)
         _ <- edge.documents.insert(document = edgeDoc, overwrite = true, returnNew = true)
         edgeDefinition = GraphEdgeDefinition(relType, List(leftCol.repr), List(rightCol.repr))
         _ <- updateGraphDefinition(edgeDefinition)
       } yield ()
     }
 
-  override def query[R](queryString: String, batchSize: Option[Long])(implicit D: VPackDecoder[R]): F[QueryResult[R]] =
+  private def getRelatedLinks(uri: Uri): F[Vector[LinkValue]] =
+    execute { client =>
+      for {
+        docHandle <- ColKey.fromUri[F](uri)
+        query = s"FOR x, edge IN OUTBOUND '${docHandle.path}' GRAPH ${RES_REL_GRAPH} RETURN edge"
+        cursor <-
+            client
+                .db
+                .query(query)
+                .batchSize(DEFAULT_BATCH_SIZE)
+                .execute[LinkValue]
+                .handleErrors()
+                .ifNotFound(Cursor(false, None, None, false, None, Vector.empty[LinkValue]).pure[F])
+      } yield cursor.result
+    }
+
+  override def getRelated[R](uri: Uri, relType: String)(implicit deserializer: VPackDecoder[R]): Stream[F, R] = {
+
+    val query = ColKey.fromUri[F](uri).map(docHandle =>
+      s"FOR x, edge IN OUTBOUND '${docHandle.path}' ${relType} RETURN x")
+
+    Stream.eval(query).flatMap(query => queryStream[R](query))
+  }
+
+  override def query[R](
+      queryStr: String,
+      batchSize: Option[Long] = None)(
+      implicit D: VPackDecoder[R]): F[QueryResult[R]] =
     execute { client => {
       for {
-        exec <- client.db.query(queryString).batchSize(batchSize.getOrElse(DEFAULT_BATCH_SIZE)).execute.handleErrors()
+        exec <- client.db.query(queryStr).batchSize(batchSize.getOrElse(DEFAULT_BATCH_SIZE)).execute[R].handleErrors()
       } yield toQueryResult(exec)
     }}
 
@@ -119,8 +152,8 @@ object ArangoStore {
     QueryResult(cursor.result, cursor.id.map(id => uri"/" / queryCol.repr/ id))
 }
 
-case class ColKeyOp(collectionName: CollectionName, key: Option[DocumentKey])
 case class ColKey(collectionName: CollectionName, key: DocumentKey)
+case class ColKeyOp(collectionName: CollectionName, key: Option[DocumentKey])
 
 object ColKey {
 
@@ -139,8 +172,7 @@ object ColKey {
       key <- F.fromOption(keyOp, BadRequestError(None, s"Uri not supported to fetch docs: $uri".some, None))
     } yield ColKey(collectionName, key)
 
-  implicit class ColKeyOpOps[R](body: R) {
-
+  implicit class ColKeyOpBodyOps[R](body: R) {
 
     def encodeWithKey(keyOp: Option[DocumentKey])(implicit E: VPackEncoder[R]): VPack = {
 
@@ -151,5 +183,10 @@ object ColKey {
         case _ => baseDocument
       }
     }
+  }
+
+  implicit class ColKeyOps(colKey: ColKey) {
+
+    def path: String = DocumentHandle(colKey.collectionName, colKey.key).path
   }
 }

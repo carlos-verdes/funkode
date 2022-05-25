@@ -27,6 +27,7 @@ trait RestRoutes extends IOMatchers {
 
   import error._
   import resource._
+  import io.funkode.rest.syntax.all._
 
   case class Mock(id: Option[String], name: String, age: Int)
 
@@ -52,7 +53,7 @@ trait RestRoutes extends IOMatchers {
 
       case r @ POST -> Root / "mocks" =>
         for {
-          HttpResource(requestUri, mock) <- r.attemptResource[Mock]
+          HttpResource(requestUri, mock, _) <- r.attemptResource[Mock]
         } yield {
           mock.id match {
             case Some(id) =>
