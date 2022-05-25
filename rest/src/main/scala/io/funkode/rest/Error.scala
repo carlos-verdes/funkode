@@ -13,7 +13,7 @@ import cats.effect.MonadThrow
 import cats.syntax.applicativeError._
 import cats.syntax.option._
 import org.http4s.dsl.Http4sDsl
-import org.http4s.{HttpRoutes, Request, Response}
+import org.http4s.{DecodeFailure, HttpRoutes, Request, Response}
 import org.log4s.getLogger
 
 object error {
@@ -70,9 +70,12 @@ object error {
         logger.error(s"""Method $method not implemented ${messageDescription(message)}""")
         NotImplemented(method)
       case RuntimeError(request, message, cause) =>
-      logger.error(s"""Runtime error ${messageDescription(message)}""")
+        logger.error(s"""Runtime error ${messageDescription(message)}""")
         request.foreach(r => logger.debug(r.toString))
         InternalServerError(causeMessage(cause))
+      case d: DecodeFailure =>
+        logger.error(s"""Decode error -> ${d.message} """)
+        BadRequest(causeMessage(d.cause))
       case other =>
         logger.error(other)("other error")
         InternalServerError(causeMessage(other.some))
