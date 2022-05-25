@@ -33,8 +33,8 @@ trait SomeServices extends IOMatchers {
   val mock1Resource = HttpResource(uri"/mocks" / mock1.name, mock1)
 
 
-  def storeMockResource[F[_]](httpResource: HttpResource[Mock])(implicit F: Applicative[F]): F[HttpResource[Mock]] =
-    F.pure(httpResource.copy(uri = httpResource.uri / httpResource.body.name))
+  def storeMockResource[F[_]](uri: Uri, mock: Mock)(implicit F: Applicative[F]): F[HttpResource[Mock]] =
+    F.pure(HttpResource(uri / mock.name, mock))
 
   def routes[F[_]](implicit F: Sync[F]): HttpRoutes[F] = {
 
@@ -45,8 +45,8 @@ trait SomeServices extends IOMatchers {
 
       case r @ POST -> Root / "mocks" =>
         for {
-          mockResourceWithoutId <- r.attemptResource[Mock]
-          mockResource <- storeMockResource[F](mockResourceWithoutId)
+          mockResourceWithoutId <- r.as[Mock]
+          mockResource <- storeMockResource[F](r.uri, mockResourceWithoutId)
         } yield {
           mockResource.created[F]
         }

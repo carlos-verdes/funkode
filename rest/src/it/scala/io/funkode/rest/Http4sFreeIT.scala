@@ -53,13 +53,13 @@ trait RestRoutes extends IOMatchers {
 
       case r @ POST -> Root / "mocks" =>
         for {
-          HttpResource(requestUri, mock, _) <- r.attemptResource[Mock]
+          mock <- r.as[Mock]
         } yield {
           mock.id match {
             case Some(id) =>
-              HttpResource(requestUri / id, mock.copy(id = id.some)).created[F]
+              HttpResource(r.uri / id, mock.copy(id = id.some)).created[F]
             case None =>
-              HttpResource(requestUri / createdId, mock.copy(id = createdId.some)).created[F]
+              HttpResource(r.uri / createdId, mock.copy(id = createdId.some)).created[F]
           }
         }
     }
