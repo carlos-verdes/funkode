@@ -12,7 +12,6 @@ import org.http4s.Uri
 
 object query {
 
-
   case class QueryResult[R](results: Vector[R], next: Option[Uri])
 
   @finalAlg
