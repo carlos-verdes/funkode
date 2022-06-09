@@ -19,6 +19,7 @@ object Dependencies {
     val specs2V = "4.9.3"
     val dockerTestV = "0.9.9"
     val jansiVersion = "1.8"
+    val simulacrumV = "1.0.1"
   }
 
   object Libraries {
@@ -44,6 +45,7 @@ object Dependencies {
     val web3               = "org.web3j"             %  "core"                   % Versions.web3jVersion
     val estatico           = "io.estatico"           %% "newtype"                % Versions.estaticoV
     val pureConfig         = "com.github.pureconfig" %% "pureconfig"             % Versions.pureConfigV
+    val simulacrum         = "org.typelevel"         %% "simulacrum"             % Versions.simulacrumV
 
     val logback            = "ch.qos.logback"       %  "logback-classic"         % Versions.logBackV
     val logCatsSlf4j       = "org.typelevel"        %% "log4cats-slf4j"          % Versions.logCatsSlf4jV

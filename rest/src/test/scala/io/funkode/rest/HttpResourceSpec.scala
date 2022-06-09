@@ -10,7 +10,6 @@ import cats.Applicative
 import cats.effect.{IO, Sync}
 import cats.implicits.{toFlatMapOps, toFunctorOps}
 import io.circe.generic.auto._
-import io.funkode.rest.resource.REL_SELF
 import org.http4s._
 import org.http4s.implicits._
 import org.http4s.circe.CirceEntityCodec._
@@ -29,8 +28,13 @@ trait SomeServices extends IOMatchers {
   case class Mock(name: String, age: Int)
   case class WrongRequest(surname: String)
 
+  val MOCKS_URI = uri"/mocks"
+
+  implicit val mockToResource: ToResource[Mock] = (r: Mock) => MOCKS_URI / r.name
+
   val mock1 = Mock("name1", 12)
-  val mock1Resource = HttpResource(uri"/mocks" / mock1.name, mock1)
+  val mock1Uri = MOCKS_URI / mock1.name
+  val mock1Resource = HttpResource(mock1Uri, mock1)
 
 
   def storeMockResource[F[_]](uri: Uri, mock: Mock)(implicit F: Applicative[F]): F[HttpResource[Mock]] =
@@ -61,9 +65,9 @@ trait SomeServices extends IOMatchers {
 
   val service = restErrorMidleware(routes[IO])
 
-  val createMockRequest = service.orNotFound(Request[IO](Method.POST, uri"/mocks").withEntity(mock1))
-  val getMockRequest = service.orNotFound(Request[IO](Method.GET, uri"/mocks" / mock1.name))
-  val badRequest = service.orNotFound(Request[IO](Method.POST, uri"/mocks").withEntity(WrongRequest("asd")))
+  val createMockRequest = service.orNotFound(Request[IO](Method.POST, MOCKS_URI).withEntity(mock1))
+  val getMockRequest = service.orNotFound(Request[IO](Method.GET, MOCKS_URI / mock1.name))
+  val badRequest = service.orNotFound(Request[IO](Method.POST, MOCKS_URI).withEntity(WrongRequest("asd")))
 }
 
 class HttpResourceSpec
@@ -76,7 +80,11 @@ class HttpResourceSpec
       Create proper `Ok` headers                   $okHeaders
       Create proper `Created` headers              $createdHeaders
       Retrieve bad request errors                  $badRequestErrors
+      Create a resource with typeclass ToResource  $resourceFromTypeclass
       """
+
+  import resource._
+  import ToResource.ops._
 
   def parseRequest: MatchResult[IO[Response[IO]]] =
     createMockRequest must returnBody(mock1)
@@ -90,4 +98,7 @@ class HttpResourceSpec
 
   def badRequestErrors: MatchResult[IO[Response[IO]]] =
     badRequest must returnStatus(Status.BadRequest)
+
+  def resourceFromTypeclass: MatchResult[Any] =
+    (mock1.asResource must_=== HttpResource(mock1Uri, mock1)) and (mock1.uri must_=== mock1Uri)
 }
