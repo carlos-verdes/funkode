@@ -9,13 +9,14 @@ import scala.concurrent.Future
 
 import avokka.arangodb.ArangoConfiguration
 import avokka.arangodb.fs2.Arango
-import avokka.velocypack.{VPackDecoder, VPackEncoder}
+import avokka.velocypack._
 import cats.effect.IO
 import cats.implicits.toTraverseOps
 import com.whisk.docker.impl.spotify._
 import com.whisk.docker.specs2.DockerTestKit
 import io.funkode.rest.query.QueryResult
 import org.http4s._
+import org.http4s.headers.LinkValue
 import org.http4s.implicits._
 import org.specs2.Specification
 import org.specs2.matcher.{IOMatchers, MatchResult, RestMatchers}
@@ -60,17 +61,30 @@ trait MockServiceWithArango extends InterpretersAndDsls {
   val mocksBatch1Uri = uri"/" / mocksBatch1Col
   val mocksBatch2Uri = uri"/" / mocksBatch2Col
 
-  val mock1 = HttpResource(mocksUri / "aaa", Mock("aaa123", "Pizza", 21))
-  val mock2 = HttpResource(mocksUri / "bbb", Mock("bbb", "Pasta", 10))
-  val mock3 = HttpResource(mocksUri / "ccc", Mock("ccc", "Gazpacho", 10))
+  val mock1Object = Mock("aaa", "Pizza", 21)
+  val mock2 = HttpResource(mocksUri / "bbb", Mock("bbb", "Pasta", 11))
+  val mock3 = HttpResource(mocksUri / "ccc", Mock("ccc", "Gazpacho", 37))
   val mock4 = HttpResource(mocksUri / "ddd", Mock("ddd", "Salad", 10))
+  val mock5 = HttpResource(mocksUri / "eee", Mock("eee", "Rice", 10))
+
   val updated3Mock = Mock("ccc", "Tortilla", 36)
-  val person1 = HttpResource(uri"/person/roger" , Person("Roger"))
-  val person2 = HttpResource(uri"/person/that", Person("That"))
+
+  val personCollection = uri"/person"
+  val person1 = HttpResource(personCollection / "roger" , Person("Roger"))
+  val person2 = HttpResource(personCollection / "that", Person("That"))
+  val person3 = HttpResource(personCollection / "ok", Person("Ok"))
 
   val likes = "likes"
   val knows = "knows"
-  val person1WithLinks = person1.withLinks(Vector(person2.selfLink.withRel(knows), mock4.selfLink.withRel(likes)))
+  val eatenBy = "eatenBy"
+
+  val likesLink = LinkValue(person1.uri / likes).withRel(likes)
+  val knowsLink = LinkValue(person1.uri / knows).withRel(knows)
+  val eatenByLink = LinkValue(mock5.uri / eatenBy).withRel(eatenBy)
+
+  val person1WithLinks = person1.withLinks(Vector(knowsLink, likesLink))
+  val mock5WithLinks = mock5.withLinks(Vector(eatenByLink))
+
 
   val mock1Batch1 = HttpResource(mocksBatch1Uri / "batch1.1", Mock("batch1.1", "Pizza", 21))
   val mock2Batch1 = HttpResource(mocksBatch1Uri / "batch1.2", Mock("batch1.2", "Pasta", 10))
@@ -88,14 +102,14 @@ trait MockServiceWithArango extends InterpretersAndDsls {
 
   def storeAndFetch[R: VPackEncoder : VPackDecoder](
       mockResource: HttpResource[R])(
-      implicit dsl: VPackStoreDsl[IO]): IO[R] = {
+      implicit dsl: VPackStoreDsl[IO]): IO[HttpResource[R]] = {
 
     import dsl._
 
     for {
       savedResource <- store[R](mockResource)
-      fetchedResource <- fetch[R](savedResource.uri)
-    } yield fetchedResource.body
+      results <- fetchOne[R](savedResource.uri)
+    } yield results
   }
 
   def storeAndUpdate[R: VPackEncoder : VPackDecoder](
@@ -109,21 +123,6 @@ trait MockServiceWithArango extends InterpretersAndDsls {
       savedResource <- store[R](mockResource)
       updatedResource <- store[R](savedResource.uri, newMock)
     } yield updatedResource.body
-  }
-
-  def storeAndLink[L : VPackEncoder : VPackDecoder, R : VPackEncoder : VPackDecoder](
-      left: HttpResource[L],
-      right: HttpResource[R],
-      linkRel: String)(
-      implicit dsl: VPackStoreDsl[IO]): IO[Unit] = {
-
-    import dsl._
-
-    for {
-      _ <- store[L](left)
-      _ <- store[R](right)
-      _ <- linkResources(left, right, linkRel, Map(("random", "attribute")))
-    } yield ()
   }
 
   def storeResources[R: VPackEncoder : VPackDecoder](
@@ -146,7 +145,7 @@ trait MockServiceWithArango extends InterpretersAndDsls {
   def fetchFromArango[R : VPackDecoder](
       uri: Uri)(
       implicit dsl: VPackStoreDsl[IO]): IO[R] =
-    dsl.fetch[R](uri).map(_.body)
+    dsl.fetchOne[R](uri).map(_.body)
 }
 
 class ArangoServiceIT(env: Env)
@@ -162,8 +161,8 @@ class ArangoServiceIT(env: Env)
 
   def is: SpecStructure = s2"""
       The ArangoDB container should be ready                  $arangoIsReady
-      Store a new resource with specific id                   $storeNewResource
-      Store and fetch from ArangoDB                           $testStoreAndFetch
+      Store a new object on a collection (uri from)           $storeObject
+      Store a new resource (uri defined)                      $storeResource
       Store and update from ArangoDB                          $storeAndUpdate
       Store and link two resources                            $storeAndLinkResources
       Return not found error when document doesn't exist      $returnNotFound
@@ -179,22 +178,34 @@ class ArangoServiceIT(env: Env)
 
   def arangoIsReady: MatchResult[Future[Boolean]] = isContainerReady(arangoContainer) must beTrue.await
 
-  def storeNewResource: MatchResult[Any] =
-    storeDsl.store[Mock](mocksUri, mock1.body).map(_.body) must returnValue(mock1.body)
+  def storeObject: MatchResult[Any] = store[Mock](mocksUri, mock1Object).map(_.body) must returnValue(mock1Object)
 
-  def testStoreAndFetch: MatchResult[Any] = storeAndFetch[Mock](mock2) must returnValue(mock2.body)
+  def storeResource: MatchResult[Any] = storeAndFetch[Mock](mock2) must returnValue(mock2)
 
   def storeAndUpdate: MatchResult[Any] = storeAndUpdate[Mock](mock3, updated3Mock) must returnValue(updated3Mock)
+
+  val tempQery =
+    """FOR vertex, edge
+      |IN 1..1 OUTBOUND "person/roger" likes
+      |RETURN vertex
+      |""".stripMargin
 
   def storeAndLinkResources: MatchResult[Any] =
     (store(person1) *>
         store(person2) *>
         store(mock4) *>
-        linkResources(person1, person2, knows) *>
-        linkResources(person1, mock4, likes) *>
-        fetch[Person](person1.uri) must returnValue(person1WithLinks)) and (
-        getRelated[Person, Person](person1, knows).compile.toVector must returnValue(Vector(person2.body))) and (
-        getRelated[Person, Mock](person1, likes).compile.toVector must returnValue(Vector(mock4.body)))
+        store(mock5) *>
+        linkResources(person1, knows, person2) *>
+        linkResources(person1, likes, mock4) *>
+        linkResources(person1, likes, mock5) *>
+        linkResources(mock5, eatenBy, person1) *>
+        fetch[Person](person1.uri).compile.toVector must returnValue(Vector(person1WithLinks))) and (
+        fetchOne[Person](person1.uri) must returnValue(person1WithLinks)) and (
+        fetch[Person](knowsLink.uri).compile.toVector must returnValue(Vector(person2))) and (
+        fetch[Mock](likesLink.uri).compile.toVector must returnValue(Vector(mock4, mock5WithLinks))) and (
+        fetch[Person](eatenByLink.uri).compile.toVector must returnValue(Vector(person1WithLinks))) and (
+        fetch[Person](personCollection).compile.toVector must returnValue(Vector(person1WithLinks, person2))
+    )
 
   def returnNotFound: MatchResult[Any] =
     fetchFromArango[Mock](uri"/emptyCollection/123") must returnError[Mock, NotFoundError]
@@ -220,19 +231,4 @@ class ArangoServiceIT(env: Env)
   def storeAndQueryStreamTest: MatchResult[Any] =
     (storeResources[Mock](mocksBatch2Res) must returnOk[Unit]) and
         (queryColStream[Mock](mocksBatch2Col).compile.toVector must returnValue(mocksBatch2))
-  /*
-  def storeResource: MatchResult[Any] =
-    (userService.orNotFound(createUserRequest) must returnValue { (response: Response[IO]) =>
-      response must haveStatus(Created) and
-          (response must haveBody(expectedCreatedUser)) and
-          (response must containHeader(Location(userUri(expectedCreatedUser))))
-    }) and (
-      userService.orNotFound(getProfileRequest) must returnValue { response: Response[IO] =>
-        response must haveStatus(Ok) and (response must haveBody(expectedCreatedUser))
-      }) and (
-        userService.orNotFound(updateUserRequest) must returnValue { response: Response[IO] =>
-          response must haveStatus(Ok) and (response must haveBody(expectedUpdatedUser))
-      })
-
- */
 }

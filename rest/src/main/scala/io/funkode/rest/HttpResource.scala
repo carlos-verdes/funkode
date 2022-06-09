@@ -18,6 +18,8 @@ object resource {
 
   case class HttpResource[R](uri: Uri, body: R, links: Link)
 
+  type HttpResources[R] = Vector[HttpResource[R]]
+
   object HttpResource {
 
     def selfLink(uri: Uri): LinkValue = LinkValue(uri, REL_SELF.some)

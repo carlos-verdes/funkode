@@ -13,7 +13,7 @@ import avokka.arangodb.protocol.{ArangoClient, ArangoError, ArangoResponse}
 import avokka.arangodb.{ArangoCollection, ArangoGraph}
 import avokka.velocypack.{VObject, VPack, VPackDecoder, VPackEncoder, VPackError, VString}
 import cats.MonadThrow
-import cats.implicits.toFlatMapOps
+import cats.implicits.{toFlatMapOps, toShow}
 import cats.syntax.functor._
 import cats.syntax.option._
 import org.http4s.{Status, Uri}
@@ -76,13 +76,13 @@ package object arango {
   def createEdge[F[_] : MonadThrow](collection: ArangoCollection[F]): F[CollectionInfo] =
     createCollection(collection, CollectionType.Edge)
 
-  def buildEdgeDoc(leftUri: Uri, rightUri: Uri, rel: String, attributes: Map[String, String]): VPack =
+  def buildEdgeDoc(leftUri: Uri, rightUri: Uri, attributes: Map[String, String]): VPack =
     VObject
         .empty
         //.updated("_key", key)
         .updated("_from", leftUri.path.toString().substring(1))
         .updated("_to", rightUri.path.toString().substring(1))
-        .updated("_rel", rel)
+        //.updated("_rel", rel)
         .updated(ATTRIBUTES_KEY, VObject(attributes.view.mapValues(VString).toMap))
 
   def handleArangoErrors[F[_], R](effect: F[R])(implicit F: MonadThrow[F]): F[R] = {
@@ -110,8 +110,9 @@ package object arango {
           logger.trace(arangoError)("Arango Error, conflict request")
           ConflictError(None, None, arangoError.some)
         case vPackError: VPackError =>
-          logger.error(arangoError)("Arango Error, other error")
-          BadRequestError(None, s"Error coding/decoding VPack".some, vPackError.some)
+          logger.error(arangoError)("Arango Error, Vpack encoding/decoding \n" + vPackError.history.mkString("\n"))
+          logger.error(vPackError.show)
+          RuntimeError(None, s"Error coding/decoding VPack".some, vPackError.some)
       }
     })
 }

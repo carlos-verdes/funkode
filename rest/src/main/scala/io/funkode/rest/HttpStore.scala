@@ -14,26 +14,31 @@ object store {
   import query._
   import resource._
 
+  case class FetchResult[R](results: HttpResources[R], next: Option[Uri])
+
   @finalAlg
   trait HttpStoreDsl[F[_], Ser[_], Des[_]] {
 
     def store[R](uri: Uri, resourceBody: R)(implicit serializer: Ser[R], deserializer: Des[R]): F[HttpResource[R]]
-    def fetch[R](resourceUri: Uri)(implicit deserializer: Des[R]): F[HttpResource[R]]
-    def linkResources(leftUri: Uri, rightUri: Uri, relType: String, attributes: Map[String, String]): F[Unit]
-    def getRelated[R](uri: Uri, relType: String)(implicit deserializer: Des[R]): fs2.Stream[F, R]
+    def linkResources(leftUri: Uri, relType: String, rightUri: Uri, attributes: Map[String, String]): F[Unit]
+
+    def fetchOne[R](uri: Uri)(implicit deserializer: Des[R]): F[HttpResource[R]]
+    def fetch[R](uri: Uri)(implicit deserializer: Des[R]): fs2.Stream[F, HttpResource[R]]
 
     def store[R](res: HttpResource[R])(implicit S: Ser[R], D: Des[R]): F[HttpResource[R]] = store(res.uri, res.body)
 
     def linkResources[L, R](
         left: HttpResource[L],
-        right: HttpResource[R],
         relType: String,
+        right: HttpResource[R],
         attributes: Map[String, String] = Map.empty): F[Unit] =
-      linkResources(left.uri, right.uri, relType, attributes)
-
-    def getRelated[L, R](left: HttpResource[L], relType: String)(implicit deserializer: Des[R]): fs2.Stream[F, R] =
-      getRelated[R](left.uri, relType)
+      linkResources(left.uri, relType, right.uri, attributes)
   }
 
   trait HttpStoreWithQueryDsl[F[_], Ser[_], Des[_]] extends HttpStoreDsl[F, Ser, Des] with QueryDsl[F, Des]
+
+  object FetchResult {
+
+    def one[R](r: HttpResource[R]): FetchResult[R] = FetchResult(Vector(r), None)
+  }
 }

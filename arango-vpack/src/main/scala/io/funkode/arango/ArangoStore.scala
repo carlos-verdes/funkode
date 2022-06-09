@@ -20,7 +20,6 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.option._
 import fs2.Stream
-import io.funkode.rest.query.QueryResult
 import org.http4s.Uri
 import org.http4s.Uri.Path.Root
 import org.http4s.dsl.io./
@@ -30,7 +29,6 @@ import org.http4s.implicits.http4sLiteralsSyntax
 
 class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) extends VPackStoreDsl[F] {
 
-  import arango.RES_REL_GRAPH
   import ArangoStore._
   import ColKey._
   import codecs.http4sCodecs._
@@ -54,7 +52,8 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
       } yield HttpResource(uri"/" / collectionName.repr / stored._key.repr, parsedDocument)
     }
 
-  override def fetch[R](resourceUri: Uri)(implicit deserializer: VPackDecoder[R]): F[HttpResource[R]] =
+
+  override def fetchOne[R](resourceUri: Uri)(implicit deserializer: VPackDecoder[R]): F[HttpResource[R]] =
     execute { client =>
       for {
         ColKey(collectionName, key) <- ColKey.fromUri[F](resourceUri)
@@ -64,7 +63,33 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
       } yield HttpResource(resourceUri, document).withLinks(links)
     }
 
-  override def linkResources(leftUri: Uri, rightUri: Uri, relType: String, attributes: Map[String, String]): F[Unit] =
+  private def resourceQuery: String =
+    s"""  LET selfLink = { "uri": vertex._id, "rel": "self" }
+       |  LET links = (
+       |    FOR v, edge
+       |    IN 1..1 OUTBOUND vertex._id GRAPH ${RES_REL_GRAPH}
+       |    COLLECT rel = LEFT(edge._id, FIND_FIRST(edge._id, "/")) INTO uris
+       |    RETURN { "uri": CONCAT_SEPARATOR("/", vertex._id, rel), "rel": rel }
+       |  )
+       |RETURN { "uri": vertex._id, "body": vertex, "links": UNSHIFT(links, selfLink) } """.stripMargin
+
+  override def fetch[R](uri: Uri)(implicit deserializer: VPackDecoder[R]): Stream[F, HttpResource[R]] = {
+
+    val vertexQuery = uri.path match {
+      case Root / col / key / relType => s"""FOR vertex IN 1..1 OUTBOUND "${col}/${key}" ${relType}""".pure[F]
+      case Root / col / key => s"""FOR vertex IN ${col} FILTER vertex._key == "${key}"""".pure[F]
+      case Root / col => s"""FOR vertex IN ${col}""".pure[F]
+      case _ => F.raiseError[String](BadRequestError(None, s"Url not supported for storage: $uri".some, None))
+    }
+
+    val query = vertexQuery.map(vQuery =>
+      s"""$vQuery
+         |$resourceQuery""".stripMargin)
+
+    Stream.eval(query).flatMap(query => queryStream[HttpResource[R]](query))
+  }
+
+  override def linkResources(leftUri: Uri, relType: String, rightUri: Uri, attributes: Map[String, String]): F[Unit] =
     execute { client =>
 
       implicit val _client = client
@@ -74,7 +99,7 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
         ColKey(rightCol, _) <- ColKey.fromUri[F](rightUri)
         edge = client.db.collection(CollectionName(relType))
         _ <- edge.info().handleErrors().ifNotFound(createEdge(edge))
-        edgeDoc = buildEdgeDoc(leftUri, rightUri, relType, attributes)
+        edgeDoc = buildEdgeDoc(leftUri, rightUri, attributes)
         _ <- edge.documents.insert(document = edgeDoc, overwrite = true, returnNew = true)
         edgeDefinition = GraphEdgeDefinition(relType, List(leftCol.repr), List(rightCol.repr))
         _ <- updateGraphDefinition(edgeDefinition)
@@ -85,25 +110,20 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
     execute { client =>
       for {
         docHandle <- ColKey.fromUri[F](uri)
-        query = s"FOR x, edge IN OUTBOUND '${docHandle.path}' GRAPH ${RES_REL_GRAPH} RETURN edge"
+        query = s"""
+            |FOR x, edge IN OUTBOUND "${docHandle.path}"
+            |GRAPH ${RES_REL_GRAPH}
+            |RETURN DISTINCT LEFT(edge._id, FIND_FIRST(edge._id, "/"))""".stripMargin
         cursor <-
             client
                 .db
                 .query(query)
                 .batchSize(DEFAULT_BATCH_SIZE)
-                .execute[LinkValue]
+                .execute[String]
                 .handleErrors()
-                .ifNotFound(Cursor(false, None, None, false, None, Vector.empty[LinkValue]).pure[F])
-      } yield cursor.result
+                .ifNotFound(Cursor(false, None, None, false, None, Vector.empty[String]).pure[F])
+      } yield cursor.result.map(rel => LinkValue(uri / rel, rel.some))
     }
-
-  override def getRelated[R](uri: Uri, relType: String)(implicit deserializer: VPackDecoder[R]): Stream[F, R] = {
-
-    val query = ColKey.fromUri[F](uri).map(docHandle =>
-      s"FOR x, edge IN OUTBOUND '${docHandle.path}' ${relType} RETURN x")
-
-    Stream.eval(query).flatMap(query => queryStream[R](query))
-  }
 
   override def query[R](
       queryStr: String,
@@ -144,6 +164,8 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
 }
 
 object ArangoStore {
+
+  import rest.query._
 
   val DEFAULT_BATCH_SIZE = 10L
   val DEFAULT_QUERY_COL = CollectionName("queries")

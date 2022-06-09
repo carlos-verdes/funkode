@@ -41,15 +41,22 @@ trait MockResources {
     override def store[R](uri: Uri, resource: R)(implicit S: Encoder[R], D: Decoder[R]): IO[HttpResource[R]] =
       IO.pure(HttpResource(newMockIdUri, resource))
 
-    override def fetch[R](resourceUri: Uri)(implicit deserializer: Decoder[R]): IO[HttpResource[R]] =
-      (if (resourceUri == existingUri) HttpResource(newMockIdUri, existingMock.asInstanceOf[R]).pure[IO]
-      else IO.raiseError[HttpResource[R]](NotFoundError(None, s"resource not found $resourceUri".some, None)))
+    override def fetchOne[R](resourceUri: Uri)(implicit deserializer: Decoder[R]): IO[HttpResource[R]] =
+      if (resourceUri == existingUri) {
+        HttpResource(newMockIdUri, existingMock.asInstanceOf[R]).pure[IO]
+      } else {
+        IO.raiseError[HttpResource[R]](NotFoundError(None, s"resource not found $resourceUri".some, None))
+      }
 
-    override def linkResources(leftUri: Uri, rightUri: Uri, relType: String, att: Map[String, String]): IO[Unit] =
+    override def fetch[R](uri: Uri)(implicit deser: Decoder[R]): fs2.Stream[IO, HttpResource[R]] =
+      if (uri == existingUri) {
+        fs2.Stream.eval(HttpResource(newMockIdUri, existingMock.asInstanceOf[R]).pure[IO])
+      } else {
+        fs2.Stream.eval(IO.raiseError[HttpResource[R]](NotFoundError(None, s"resource not found $uri".some, None)))
+      }
+
+    override def linkResources(leftUri: Uri, relType: String, rightUri: Uri, att: Map[String, String]): IO[Unit] =
       ().pure[IO]
-
-    override def getRelated[R](uri: Uri, relType: String)(implicit deser: Decoder[R]): fs2.Stream[IO, R] =
-      fs2.Stream.empty
   }
 
   val responseCreated: Response[IO] = HttpResource(existingUri, existingMock).created
@@ -63,7 +70,7 @@ class HttpStoreSpec
         with RestMatchers[IO] { def is: SpecStructure =
   s2"""
       ApiResource should: <br/>
-      Store a resource                                $store
+      Store a resource                                $storeAResource
       Fetch an existing resource                      $fetchFound
       Return not found error for nonexistent resource $fetchNotFound
       Add self Link header for resources              $selfLinkHeader
@@ -74,11 +81,14 @@ class HttpStoreSpec
   import resource._
   import syntax.all._
 
-  def store: MatchResult[Any] = mockStoreDsl.store[Mock](newMockIdUri, newMock).map(_.body) must returnValue(newMock)
-  def fetchFound: MatchResult[Any] = mockStoreDsl.fetch[Mock](existingUri).map(_.body) must returnValue(existingMock)
+  import mockStoreDsl._
+
+  def storeAResource: MatchResult[Any] = store[Mock](newMockIdUri, newMock).map(_.body) must returnValue(newMock)
+
+  def fetchFound: MatchResult[Any] = fetchOne[Mock](existingUri).map(_.body) must returnValue(existingMock)
 
   def fetchNotFound: MatchResult[Any] =
-    mockStoreDsl.fetch[Mock](nonexistingUri).map(_.body) must returnError[Mock, NotFoundError]
+    fetch[Mock](nonexistingUri).compile.toVector must returnError[HttpResources[Mock], NotFoundError]
 
   def selfLinkHeader: MatchResult[Any] =
     HttpResource(existingUri, existingMock).ok[IO].pure[IO] must returnValue { (response: Response[IO]) =>
