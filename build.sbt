@@ -29,7 +29,7 @@ val testLibraries = Seq(specs2Core, specs2Cats)
 val dockerLibraries = Seq(dockerTestConfig, dockerTestSpecs2, dockerTestSpotify)
 val javaxLibraries = Seq(javaxBind, javaxActivation, jaxbCore, jaxbImpl)
 
-val restLibs = codeLibraries ++ secLibraries ++ logLibraries ++ testLibraries
+val restLibs = codeLibraries ++ secLibraries ++ logLibraries ++ testLibraries :+ (simulacrum)
 val arangoLibs = avokkaLibraries ++ logLibraries ++ testLibraries ++ dockerLibraries ++ javaxLibraries
 
 lazy val rest = (project in file("rest"))
@@ -44,7 +44,7 @@ lazy val rest = (project in file("rest"))
     headerLicenseStyle := HeaderLicenseStyle.SpdxSyntax,
     Defaults.itSettings,
     libraryDependencies ++= restLibs,
-    scalacOptions += "-Ymacro-annotations",
+    scalacOptions ++= Seq("-Ymacro-annotations", "-Ywarn-unused:imports", "-Wconf:cat=unused:info"),
     coverageExcludedPackages := """io.funkode.rest.Main; io.funkode.*.autoDerive; org.specs2.*;""",
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.0" cross CrossVersion.full),
     addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1")

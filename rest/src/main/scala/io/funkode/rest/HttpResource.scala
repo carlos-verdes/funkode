@@ -10,6 +10,7 @@ import cats.implicits.catsSyntaxOptionId
 import cats.Functor
 import org.http4s._
 import org.http4s.headers.{Link, LinkValue}
+import simulacrum.typeclass
 
 
 object resource {
@@ -19,6 +20,13 @@ object resource {
   case class HttpResource[R](uri: Uri, body: R, links: Link)
 
   type HttpResources[R] = Vector[HttpResource[R]]
+
+  @typeclass
+  trait ToResource[R] {
+
+    def uri(r: R): Uri
+    def asResource(r: R): HttpResource[R] = HttpResource(uri(r), r)
+  }
 
   object HttpResource {
 

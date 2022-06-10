@@ -13,8 +13,7 @@ object store {
 
   import query._
   import resource._
-
-  case class FetchResult[R](results: HttpResources[R], next: Option[Uri])
+  import resource.ToResource.ops._
 
   @finalAlg
   trait HttpStoreDsl[F[_], Ser[_], Des[_]] {
@@ -33,12 +32,9 @@ object store {
         right: HttpResource[R],
         attributes: Map[String, String] = Map.empty): F[Unit] =
       linkResources(left.uri, relType, right.uri, attributes)
+
+    def store[R: ToResource](body: R)(implicit S: Ser[R], D: Des[R]): F[HttpResource[R]] = store(body.asResource)
   }
 
   trait HttpStoreWithQueryDsl[F[_], Ser[_], Des[_]] extends HttpStoreDsl[F, Ser, Des] with QueryDsl[F, Des]
-
-  object FetchResult {
-
-    def one[R](r: HttpResource[R]): FetchResult[R] = FetchResult(Vector(r), None)
-  }
 }
