@@ -23,7 +23,6 @@ import fs2.Stream
 import org.http4s.Uri
 import org.http4s.Uri.Path.Root
 import org.http4s.dsl.io./
-import org.http4s.headers.LinkValue
 import org.http4s.implicits.http4sLiteralsSyntax
 
 
@@ -106,7 +105,7 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
       } yield ()
     }
 
-  private def getRelatedLinks(uri: Uri): F[Vector[LinkValue]] =
+  private def getRelatedLinks(uri: Uri): F[Vector[ResourceLink]] =
     execute { client =>
       for {
         docHandle <- ColKey.fromUri[F](uri)
@@ -122,7 +121,7 @@ class ArangoStore[F[_]](clientR: Resource[F, Arango[F]])(implicit F: Sync[F]) ex
                 .execute[String]
                 .handleErrors()
                 .ifNotFound(Cursor(false, None, None, false, None, Vector.empty[String]).pure[F])
-      } yield cursor.result.map(rel => LinkValue(uri / rel, rel.some))
+      } yield cursor.result.map(rel => ResourceLink(uri / rel, rel))
     }
 
   override def query[R](

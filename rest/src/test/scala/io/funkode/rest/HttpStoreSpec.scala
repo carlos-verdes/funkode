@@ -24,7 +24,7 @@ trait MockResources {
   import error._
   import resource._
   import store._
-  import syntax.all._
+  import io.funkode.rest.syntax.resource._
 
   case class Mock(id: Option[String], name: String, age: Int)
 
@@ -79,7 +79,7 @@ class HttpStoreSpec
 
   import error._
   import resource._
-  import syntax.all._
+  import io.funkode.rest.syntax.resource._
 
   import mockStoreDsl._
 

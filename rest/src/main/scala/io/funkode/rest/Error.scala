@@ -7,7 +7,7 @@
 package io.funkode
 package rest
 
-import cats.Applicative
+import cats.{Applicative, Show}
 import cats.data.{Kleisli, OptionT}
 import cats.effect.MonadThrow
 import cats.syntax.applicativeError._
@@ -20,7 +20,11 @@ object error {
 
   private val logger = getLogger
 
-  trait RestError extends Throwable
+  sealed trait RestError extends Throwable {
+
+    override def getMessage: String = errorShow.show(this)
+  }
+
   case class BadRequestError(request: Option[Any], message: Option[String], cause: Option[Throwable]) extends RestError
   case class ForbiddenError(request: Option[Any], message: Option[String], cause: Option[Throwable]) extends RestError
   case class NotFoundError(id: Option[Any], message: Option[String], cause: Option[Throwable]) extends RestError
@@ -101,5 +105,26 @@ object error {
       effect.handleErrorWith {
         case _: ConflictError => handleConflict
       }
+  }
+
+  implicit val errorShow: Show[RestError] = new Show[RestError] {
+
+    implicit class OptionLabelOps(opt: Option[Any]) {
+      def label(label: Any): String = opt.map(s"$label: " + _).getOrElse("")
+    }
+
+    private def showId(id: Option[Any]): String = id.label("id")
+    private def showRequest(request: Option[Any]): String = request.label("request")
+    private def showMessage(message: Option[Any]): String = message.label("message")
+    private def showCause(opt: Option[Throwable]): String = opt.map("cause: " + _.getLocalizedMessage).getOrElse("")
+
+    override def show(error: RestError): String = error match {
+      case BadRequestError(r, m, c) => s"BadRequestError ${showRequest(r)} ${showMessage(m)} ${showCause(c)}"
+      case ForbiddenError(r, m, c) => s"ForbiddenError ${showRequest(r)} ${showMessage(m)} ${showCause(c)}"
+      case NotFoundError(id, m, c) => s"NotFoundError ${showId(id)} ${showMessage(m)} ${showCause(c)}"
+      case ConflictError(r, m, c) => s"ConflictError ${showRequest(r)} ${showMessage(m)} ${showCause(c)}"
+      case NotImplementedError(method, m) => s"NotImplementedError method: $method ${showMessage(m)}"
+      case RuntimeError(r, m, c) => s"RuntimeError ${showRequest(r)} ${showMessage(m)} ${showCause(c)}"
+    }
   }
 }

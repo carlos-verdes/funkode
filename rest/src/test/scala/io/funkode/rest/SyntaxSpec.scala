@@ -3,14 +3,12 @@
  */
 package io.funkode.rest
 
-import cats.syntax.option._
-import io.funkode.rest.resource.HttpResource
 import org.http4s.Uri
-import org.http4s.headers.LinkValue
 import org.http4s.implicits.http4sLiteralsSyntax
 import org.specs2.Specification
-import org.specs2.matcher.{MatchResult, RestMatchers}
+import org.specs2.matcher.MatchResult
 import org.specs2.specification.core.SpecStructure
+
 
 trait LinksAndUris {
 
@@ -19,8 +17,8 @@ trait LinksAndUris {
   val sampleUri: Uri = uri"/some" / "uri"
   val someRel: String = "someRel"
   val otherRel: String = "otherRel"
-  val someLinkValue = LinkValue(sampleUri, someRel.some)
-  val linkWithOtherRel = LinkValue(sampleUri, otherRel.some)
+  val someLinkValue = ResourceLink(sampleUri, someRel)
+  val linkWithOtherRel = ResourceLink(sampleUri, otherRel)
   val someResource = HttpResource(sampleUri, "some random resource")
 }
 
@@ -35,12 +33,13 @@ class SyntaxSpec
       generate self link for HttpResource       $httpResourceSelfLink
       """
 
-  import syntax.all._
+  import resource._
+  import io.funkode.rest.syntax.resource._
 
-  def linkFromUri: MatchResult[LinkValue] =
-    (sampleUri.link(someRel) must_=== someLinkValue) and (sampleUri.link(someRel.some) must_=== someLinkValue)
+  def linkFromUri: MatchResult[ResourceLink] =
+    (sampleUri.link(someRel) must_=== someLinkValue) and (sampleUri.link(someRel) must_=== someLinkValue)
 
-  def updateLinkRel: MatchResult[LinkValue] = someLinkValue.withRel(otherRel) must_=== linkWithOtherRel
+  def updateLinkRel: MatchResult[ResourceLink] = someLinkValue.withRel(otherRel) must_=== linkWithOtherRel
 
-  def httpResourceSelfLink: MatchResult[LinkValue] = someResource.selfLink must_=== LinkValue(sampleUri, "self".some)
+  def httpResourceSelfLink: MatchResult[ResourceLink] = someResource.selfLink must_=== ResourceLink(sampleUri, "self")
 }

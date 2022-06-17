@@ -4,19 +4,19 @@
  * SPDX-License-Identifier: MIT
  */
 
-package io.funkode.arango
+package io.funkode
+package arango
 package codecs
 
 import avokka.velocypack._
 import cats.implicits.toShow
 import cats.syntax.either._
-import cats.syntax.option._
-import io.funkode.rest.resource.HttpResource
 import org.http4s.{ParseFailure, Uri}
-import org.http4s.headers.{Link, LinkValue}
 
 
 trait Http4sCodecs {
+
+  import rest.resource._
 
   implicit val uriDeserializer: VPackDecoder[Uri] = VPackDecoder[String].flatMap(uriString =>
     Uri.fromString(uriString) match {
@@ -30,20 +30,10 @@ trait Http4sCodecs {
         }).asRight
     })
 
-  //case class Edge(`_from`: Uri, `_to`: Uri, `_rel`: String, attributes: Map[String, String] = Map.empty)
-  case class Edge(uri: Uri, rel: String)
+  implicit val linkValueDecoder: VPackDecoder[ResourceLink] = VPackDecoder.gen[ResourceLink]
 
-  implicit val edgeDeserializer: VPackDecoder[Edge] = VPackDecoder.gen[Edge]
-
-  implicit val linkValueDecoder: VPackDecoder[LinkValue] = VPackDecoder[Edge].flatMap(edge =>
-    LinkValue(edge.uri, edge.rel.some).asRight)
-
-  implicit val linkDecoder: VPackDecoder[Link] = VPackDecoder[Vector[LinkValue]].flatMap(linksVector =>
-      if(linksVector.isEmpty) {
-        Left(VPackError.IllegalValue(s"Link section can't be empty, make sure you add at least self uri"))
-      } else {
-        Link(linksVector.head, linksVector.tail: _*).asRight
-      })
+  implicit val linkDecoder: VPackDecoder[ResourceLinks] =
+    VPackDecoder[Vector[ResourceLink]].flatMap(l => ResourceLinks(l).asRight)
 
   implicit def httpResourceDecoder[R](implicit D: VPackDecoder[R]): VPackDecoder[HttpResource[R]] =
     (v: VPack) => v match {

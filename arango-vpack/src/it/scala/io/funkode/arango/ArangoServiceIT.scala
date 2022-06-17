@@ -16,7 +16,6 @@ import com.whisk.docker.impl.spotify._
 import com.whisk.docker.specs2.DockerTestKit
 import io.funkode.rest.query.QueryResult
 import org.http4s._
-import org.http4s.headers.LinkValue
 import org.http4s.implicits._
 import org.specs2.Specification
 import org.specs2.matcher.{IOMatchers, MatchResult, RestMatchers}
@@ -78,9 +77,9 @@ trait MockServiceWithArango extends InterpretersAndDsls {
   val knows = "knows"
   val eatenBy = "eatenBy"
 
-  val likesLink = LinkValue(person1.uri / likes).withRel(likes)
-  val knowsLink = LinkValue(person1.uri / knows).withRel(knows)
-  val eatenByLink = LinkValue(mock5.uri / eatenBy).withRel(eatenBy)
+  val likesLink = ResourceLink(person1.uri / likes, likes)
+  val knowsLink = ResourceLink(person1.uri / knows, knows)
+  val eatenByLink = ResourceLink(mock5.uri / eatenBy, eatenBy)
 
   val person1WithLinks = person1.withLinks(Vector(knowsLink, likesLink))
   val mock5WithLinks = mock5.withLinks(Vector(eatenByLink))
@@ -202,8 +201,8 @@ class ArangoServiceIT(env: Env)
         fetch[Person](person1.uri).compile.toVector must returnValue(Vector(person1WithLinks))) and (
         fetchOne[Person](person1.uri) must returnValue(person1WithLinks)) and (
         fetch[Person](knowsLink.uri).compile.toVector must returnValue(Vector(person2))) and (
-        fetch[Mock](likesLink.uri).compile.toVector must returnValue(Vector(mock4, mock5WithLinks))) and (
-        fetch[Person](eatenByLink.uri).compile.toVector must returnValue(Vector(person1WithLinks))) and (
+        fetchRel[Mock](person1WithLinks, likes).compile.toVector must returnValue(Vector(mock4, mock5WithLinks))) and (
+        fetchRel[Person](mock5WithLinks, eatenBy).compile.toVector must returnValue(Vector(person1WithLinks))) and (
         fetch[Person](personCollection).compile.toVector must returnValue(Vector(person1WithLinks, person2))
     )
 
