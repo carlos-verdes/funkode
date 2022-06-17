@@ -23,7 +23,7 @@ trait SomeServices extends IOMatchers {
 
   import error._
   import resource._
-  import io.funkode.rest.syntax.all._
+  import io.funkode.rest.syntax.resource._
 
   case class Mock(name: String, age: Int)
   case class WrongRequest(surname: String)

@@ -7,8 +7,9 @@ package io.funkode.rest
 
 package object syntax {
 
-  object all extends Http4sFunkodeSyntax with HttpFunkodeSyntax
+  import io.funkode.rest.resource.HttpResourceSyntax
 
-  object http4s extends Http4sFunkodeSyntax
-  object http extends HttpFunkodeSyntax
+  object all extends HttpResourceSyntax
+
+  object resource extends HttpResourceSyntax
 }
