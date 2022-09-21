@@ -3,6 +3,7 @@ import sbt._
 object Dependencies {
 
   object Versions {
+    val scalaUriV = "4.0.2"
     val tapirV = "1.1.0"
     val zioV = "2.0.2"
     val zioConfigV = "3.0.2"
@@ -12,6 +13,9 @@ object Dependencies {
   }
 
   object Libraries {
+
+    val scalaUri = "io.lemonlabs" %% "scala-uri" % Versions.scalaUriV
+
     val tapirZioHttpServer  = "com.softwaremill.sttp.tapir" %% "tapir-zio-http-server"    % Versions.tapirV
     val tapirPrometheus     = "com.softwaremill.sttp.tapir" %% "tapir-prometheus-metrics" % Versions.tapirV
     val tapirSwagger        = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle"  % Versions.tapirV

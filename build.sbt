@@ -13,6 +13,7 @@ inThisBuild(
   )
 )
 
+/*
 ThisBuild / scalacOptions ++=
   Seq(
     "-deprecation",
@@ -25,33 +26,26 @@ ThisBuild / scalacOptions ++=
     "-Ykind-projector",
     "-Ysafe-init", // experimental (I've seen it cause issues with circe)
   ) ++ Seq("-rewrite", "-indent") ++ Seq("-source", "future-migration")
+ */
 
+lazy val commonDependencies = Seq(scalaUri)
 lazy val zioDependencies = Seq(zio, zioConfig, zioJson)
 lazy val testDependencies = Seq(tapirSttpStubServer, zioTest, zioTestSbt, sttpClient, zioJGolden).map(_ % Test)
 
-lazy val `rest` =
+lazy val rest =
   project
     .in(file("rest"))
-    .settings(
-      Seq(
-        name := "funkode-rest",
-        libraryDependencies ++= (zioDependencies ++ testDependencies)
-      ) ++ commonSettings
-    )
+    .settings(Seq(
+      name := "funkode-rest",
+      libraryDependencies ++= (commonDependencies ++ zioDependencies ++ testDependencies)))
 
-lazy val commonSettings = commonScalacOptions ++ Seq(
-  update / evictionWarningOptions := EvictionWarningOptions.empty
-)
+lazy val todo =
+  project
+    .in(file("examples/todoTasks"))
+    .settings(name := "funkode-todo")
+    .dependsOn(rest)
 
-lazy val commonScalacOptions = Seq(
-  Compile / console / scalacOptions --= Seq(
-    "-Wunused:_",
-    "-Xfatal-warnings",
-  ),
-  Test / console / scalacOptions :=
-    (Compile / console / scalacOptions).value,
-)
-
+addCommandAlias("ll", "projects")
 addCommandAlias("checkFmtAll", ";scalafmtSbtCheck;scalafmtCheckAll")
 addCommandAlias("testAll", ";compile;test;stryker")
 addCommandAlias("sanity", ";compile;scalafmtAll;test;stryker")
