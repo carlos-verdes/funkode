@@ -1,7 +1,17 @@
 import Dependencies._
+import Libraries._
 
-ThisBuild / organization := "io.funkode"
-ThisBuild / scalaVersion := "3.1.3"
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
+inThisBuild(
+  List(
+    organization := "io.funkode",
+    scalaVersion := "3.2.0",
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
+  )
+)
 
 ThisBuild / scalacOptions ++=
   Seq(
@@ -16,12 +26,18 @@ ThisBuild / scalacOptions ++=
     "-Ysafe-init", // experimental (I've seen it cause issues with circe)
   ) ++ Seq("-rewrite", "-indent") ++ Seq("-source", "future-migration")
 
+lazy val zioDependencies = Seq(zio, zioConfig, zioJson)
+lazy val testDependencies = Seq(tapirSttpStubServer, zioTest, zioTestSbt, sttpClient, zioJGolden).map(_ % Test)
+
 lazy val `rest` =
   project
     .in(file("rest"))
-    .settings(name := "funkode-rest")
-    .settings(commonSettings)
-    .settings(dependencies)
+    .settings(
+      Seq(
+        name := "funkode-rest",
+        libraryDependencies ++= (zioDependencies ++ testDependencies)
+      ) ++ commonSettings
+    )
 
 lazy val commonSettings = commonScalacOptions ++ Seq(
   update / evictionWarningOptions := EvictionWarningOptions.empty
@@ -36,12 +52,6 @@ lazy val commonScalacOptions = Seq(
     (Compile / console / scalacOptions).value,
 )
 
-lazy val dependencies = Seq(
-  libraryDependencies ++= Seq(
-    // main dependencies
-  ),
-  libraryDependencies ++= Seq(
-    org.scalatest.scalatest,
-    org.scalatestplus.`scalacheck-1-16`,
-  ).map(_ % Test),
-)
+addCommandAlias("checkFmtAll", ";scalafmtSbtCheck;scalafmtCheckAll")
+addCommandAlias("testAll", ";compile;test;stryker")
+addCommandAlias("sanity", ";compile;scalafmtAll;test;stryker")
