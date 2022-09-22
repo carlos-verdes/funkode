@@ -10,7 +10,7 @@ enum ApiError extends Throwable:
   case NotImplemented(method: String, message: Option[String])
   case Runtime(req: Option[Any], message: Option[String], cause: Option[Throwable])
 
-object error:
+object ApiError:
   def notFound(id: Any): ApiError = ApiError.NotFound(Some(id), None, None)
 
   extension [T](effect: IO[ApiError.NotFound, T]) def ifNotFound(run: => Task[T]): Task[T] =

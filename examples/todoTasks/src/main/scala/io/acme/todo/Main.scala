@@ -1,4 +1,4 @@
-package io.funkode.todo
+package io.acme.todo
 
 import zio.*
 import zio.Console.*
@@ -6,6 +6,7 @@ import zio.Console.*
 object TodoApp extends ZIOAppDefault:
 
   import TodoService.*
+  import outbound.*
 
   val EXIT = "exit"
 
@@ -19,9 +20,9 @@ object TodoApp extends ZIOAppDefault:
         ZIO.succeed(false)
       else
         createTodo(todoDescription) *> app
-
-
   } yield shouldExit
 
   def run =
-    app.provide(TodoService.live)
+    app.provide(
+      TodoService.live,
+      TodoRepository.inMemory)

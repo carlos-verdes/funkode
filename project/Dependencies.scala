@@ -22,12 +22,13 @@ object Dependencies {
     val tapirJsonZio        = "com.softwaremill.sttp.tapir" %% "tapir-json-zio"           % Versions.tapirV
     val tapirSttpStubServer = "com.softwaremill.sttp.tapir" %% "tapir-sttp-stub-server"   % Versions.tapirV
 
-    val zio        = "dev.zio" %% "zio"             % Versions.zioV
-    val zioConfig  = "dev.zio" %% "zio-config"      % Versions.zioConfigV
-    val zioJson    = "dev.zio" %% "zio-json"        % Versions.zioJsonV
-    val zioJGolden = "dev.zio" %% "zio-json-golden" % Versions.zioJsonV
-    val zioTest    = "dev.zio" %% "zio-test"        % Versions.zioV
-    val zioTestSbt = "dev.zio" %% "zio-test-sbt"    % Versions.zioV
+    val zio           = "dev.zio" %% "zio"             % Versions.zioV
+    val zioConfig     = "dev.zio" %% "zio-config"      % Versions.zioConfigV
+    val zioJson       = "dev.zio" %% "zio-json"        % Versions.zioJsonV
+    val zioJGolden    = "dev.zio" %% "zio-json-golden" % Versions.zioJsonV
+    val zioTest       = "dev.zio" %% "zio-test"        % Versions.zioV
+    val zioTestSbt    = "dev.zio" %% "zio-test-sbt"    % Versions.zioV
+    val zioConcurrent = "dev.zio" %% "zio-concurrent" % Versions.zioV
 
     val sttpClient = "com.softwaremill.sttp.client3" %% "zio-json" % Versions.sttpClientV
   }

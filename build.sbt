@@ -29,7 +29,7 @@ ThisBuild / scalacOptions ++=
  */
 
 lazy val commonDependencies = Seq(scalaUri)
-lazy val zioDependencies = Seq(zio, zioConfig, zioJson)
+lazy val zioDependencies = Seq(zio, zioConfig, zioJson, zioConcurrent)
 lazy val testDependencies = Seq(tapirSttpStubServer, zioTest, zioTestSbt, sttpClient, zioJGolden).map(_ % Test)
 
 lazy val rest =
