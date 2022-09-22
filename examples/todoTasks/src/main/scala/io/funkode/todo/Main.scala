@@ -7,18 +7,21 @@ object TodoApp extends ZIOAppDefault:
 
   import TodoService.*
 
+  val EXIT = "exit"
 
-  val app = for {
+  def app: RIO[TodoService, Boolean] = for {
     todos <- getTodos
-    _ <- printLine(s"We have ${todos.length} pending todos")
-    _ <- printLine(s"Write next todo:")
+    _ <- printLine(s"We have ${todos.length} pending todos" + todos.map("\n" + _.description).mkString)
+    _ <- printLine(s"""Write next todo (type "$EXIT" so finish):""")
     todoDescription <- readLine
-    _ <- createTodo(todoDescription)
-    moreTodos <- getTodos
-    _ <- printLine(s"We have ${moreTodos.length} pending todos")
+    shouldExit <-
+      if (todoDescription.trim.isEmpty || todoDescription.trim.toLowerCase == EXIT)
+        ZIO.succeed(false)
+      else
+        createTodo(todoDescription) *> app
 
 
-  } yield ()
+  } yield shouldExit
 
   def run =
     app.provide(TodoService.live)

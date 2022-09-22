@@ -17,25 +17,24 @@ object TodoService:
   def getTodos: URIO[TodoService, List[Todo]] = withTodoService(_.getTodos)
   def createTodo(desc: String): URIO[TodoService, Todo] = withTodoService(_.createTodo(desc))
 
-  class TodoServiceImpl() extends TodoService:
-
-    val todosRef = Ref.make(List.empty[Todo])
+  class TodoServiceImpl(todosRef: Ref[List[Todo]]) extends TodoService:
 
     def getTodos: UIO[List[Todo]] =
       for {
-        ref <- todosRef
-        todos <- ref.get
-        _ <- ZIO.attempt(println("this are all todos")).orDie
+        todos <- todosRef.get
       } yield todos.filter(!_.done)
 
     def createTodo(description: String): UIO[Todo] =
       for {
-        ref <- todosRef
-        todo <- ref.modify(todos =>
-          val newTodo = Todo(todos.length, description)
+        todo <- todosRef.modify(todos =>
+          val newTodo = Todo(todos.length + 1, description)
           (newTodo, todos :+ newTodo)
         )
       } yield todo
 
   def live: ZLayer[Any, Nothing, TodoServiceImpl] =
-    ZLayer(ZIO.succeed(new TodoServiceImpl()))
+    ZLayer {
+      for
+        todosRef <- Ref.make(List.empty[Todo])
+      yield new TodoServiceImpl(todosRef)
+    }
