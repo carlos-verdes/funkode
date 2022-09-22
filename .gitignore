@@ -88,3 +88,5 @@ website/.cache-loader
 
 project/metals.sbt
 coursier
+
+*.semanticdb
