@@ -29,8 +29,29 @@ ThisBuild / scalacOptions ++=
  */
 
 lazy val commonDependencies = Seq(scalaUri)
-lazy val zioDependencies = Seq(zio, zioConfig, zioJson, zioConcurrent)
+lazy val zioDependencies = Seq(zio, zioJson, zioConcurrent)
 lazy val testDependencies = Seq(tapirSttpStubServer, zioTest, zioTestSbt, sttpClient, zioJGolden).map(_ % Test)
+
+lazy val velocypack =
+  project
+    .in(file("velocypack"))
+    .settings(Seq(
+      name := "funkode-velocypack"))
+
+lazy val velocystream =
+  project
+    .in(file("velocystream"))
+    .settings(Seq(name := "funkode-velocystream"))
+    .dependsOn(velocypack)
+
+lazy val arangodb =
+  project
+    .in(file("arangodb"))
+    .settings(Seq(
+      name := "funkode-arangodb",
+      libraryDependencies ++= Seq(zioConfMagnolia, zioConfTypesafe) ++ testDependencies),
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
+    .dependsOn(velocystream)
 
 lazy val rest =
   project

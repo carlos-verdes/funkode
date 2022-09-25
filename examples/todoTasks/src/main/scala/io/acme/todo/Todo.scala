@@ -15,7 +15,7 @@ trait TodoService:
 
 object TodoService:
 
-  import outbound._
+  import outbound.*
 
   def withTodoService[E, A](call: TodoService => ZIO[TodoService, E, A]) =
     ZIO.serviceWithZIO[TodoService](call)
@@ -27,16 +27,14 @@ object TodoService:
 
     import todosRepository.*
     def getTodos: IO[ApiError, List[Todo]] =
-      for {
-        todos <- getAllTodos()
-      } yield todos.filter(!_.done)
+      for todos <- getAllTodos()
+      yield todos.filter(!_.done)
 
     def createTodo(description: String): IO[ApiError, Todo] =
       saveTodo(Urn("todo", UUID.randomUUID().toString), Todo(description))
 
   def live: ZLayer[TodoRepository, Nothing, TodoService] =
     ZLayer {
-      for
-        todoRep <- ZIO.service[TodoRepository]
+      for todoRep <- ZIO.service[TodoRepository]
       yield new TodoServiceImpl(todoRep)
     }
