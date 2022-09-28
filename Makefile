@@ -15,7 +15,7 @@ gitRebase:
 		git pull upstream $(DEFAULT_BRANCH) && \
 		git push origin $(DEFAULT_BRANCH) && \
 		git checkout $(CURRENT_BRANCH) && \
-		git rebase develop
+		git rebase $(DEFAULT_BRANCH)
 
 .PHONY: gitAmmend
 gitAmmend:
@@ -39,3 +39,7 @@ endif
 .PHONY: run
 run:
 	sbt rest/run
+
+.PHONY: dependencyTree
+dependencyTree:
+	sbt dependencyBrowseTree

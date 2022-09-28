@@ -1,10 +1,12 @@
 package io.funkode.arangodb
 
+import scala.concurrent.duration.*
+import java.util.concurrent.TimeUnit.*
+
 import io.funkode.velocystream.VStreamConfiguration
 import zio.config.magnolia.*
 import zio.config.*
 import zio.config.typesafe.*
-import scala.concurrent.duration.TimeUnit
 
 final case class ArangoConfiguration(
     host: String,
@@ -13,10 +15,10 @@ final case class ArangoConfiguration(
     password: String,
     chunkLength: Long = VStreamConfiguration.CHUNK_LENGTH_DEFAULT,
     readBufferSize: Int = VStreamConfiguration.READ_BUFFER_SIZE_DEFAULT,
-    // connectTimeout: FiniteDuration = VStreamConfiguration.CONNECT_TIMEOUT_DEFAULT,
-    // replyTimeout: FiniteDuration = VStreamConfiguration.REPLY_TIMEOUT_DEFAULT,
-    database: String = DatabaseName.system.unwrap
-) // extends VStreamConfiguration
+    connectTimeout: Duration = VStreamConfiguration.CONNECT_TIMEOUT_DEFAULT,
+    replyTimeout: Duration = VStreamConfiguration.REPLY_TIMEOUT_DEFAULT,
+    database: DatabaseName = DatabaseName.system
+) extends VStreamConfiguration
 
 object ArangoConfiguration:
 
