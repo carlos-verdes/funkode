@@ -13,7 +13,9 @@ object Dependencies {
     val zioConfMagnoliaV = "3.0.2"
     val zioConfTypesafeV = "3.0.2"
 
+    val logBackV = "1.4.0"
     val scalaUriV = "4.0.2"
+    val testContainersV = "0.40.10"
   }
 
   object Libraries {
@@ -34,10 +36,12 @@ object Dependencies {
     val zioConfTypesafe = "dev.zio" %% "zio-config-typesafe" % zioConfTypesafeV
     val zioJson         = "dev.zio" %% "zio-json"            % zioJsonV
     val zioJGolden      = "dev.zio" %% "zio-json-golden"     % zioJsonV
+    val zioStreams      = "dev.zio" %% "zio-streams"         % zioV
     val zioTest         = "dev.zio" %% "zio-test"            % zioV
     val zioTestSbt      = "dev.zio" %% "zio-test-sbt"        % zioV
 
-
-    val scalaUri       = "io.lemonlabs"          %% "scala-uri"       % scalaUriV
+    val logBack        = "ch.qos.logback" % "logback-classic"            % Versions.logBackV
+    val testContainers = "com.dimafeng"   %% "testcontainers-scala-core" % Versions.testContainersV
+    val scalaUri       = "io.lemonlabs"   %% "scala-uri"                 % scalaUriV
   }
 }
