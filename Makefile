@@ -6,13 +6,14 @@ export
 
 CURRENT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 CURRENT_PATH := $(shell pwd)
+DEFAULT_BRANCH := $(shell git remote show upstream | sed -n '/HEAD branch/s/.*: //p')
 AMM := ${HOME}/amm
 
 .PHONY: gitRebase
 gitRebase:
-	git checkout develop && \
-		git pull upstream develop && \
-		git push origin develop && \
+	git checkout $(DEFAULT_BRANCH) && \
+		git pull upstream $(DEFAULT_BRANCH) && \
+		git push origin $(DEFAULT_BRANCH) && \
 		git checkout $(CURRENT_BRANCH) && \
 		git rebase develop
 
