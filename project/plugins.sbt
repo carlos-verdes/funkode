@@ -10,3 +10,5 @@ addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.6")
 addSbtPlugin("io.stryker-mutator" % "sbt-stryker4s" % "0.14.3")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.34")
+
+addDependencyTreePlugin

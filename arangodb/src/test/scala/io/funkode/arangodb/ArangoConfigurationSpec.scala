@@ -3,6 +3,8 @@
  */
 package io.funkode.arangodb
 
+import scala.concurrent.duration.*
+
 import zio.*
 import zio.config.*
 import zio.test.*
@@ -15,13 +17,13 @@ trait ArangoConfigExamples:
     port = 18529,
     username = "testUser",
     password = "testPassword",
-    database = "testDatabase",
+    database = DatabaseName("testDatabase"),
     chunkLength = 20000,
-    readBufferSize = 128000
-  ) /*,
-      connectTimeout = "10s",
-      replyTimeout = "30s")
-   */
+    readBufferSize = 128000,
+    connectTimeout = 3.seconds,
+    replyTimeout = 35.seconds
+  )
+
 object ArangoConfigurationSpec extends ZIOSpecDefault with ArangoConfigExamples:
   override def spec: Spec[TestEnvironment, Any] =
     suite("ArangoConfiguration should")(
