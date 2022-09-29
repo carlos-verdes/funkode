@@ -22,5 +22,11 @@ final case class ArangoConfiguration(
 
 object ArangoConfiguration:
 
+  import ConfigDescriptor.nested
+
+  val DEFAULT_PATH = "arangodb"
+
   val arangoConfigDescriptor = descriptor[ArangoConfiguration].mapKey(toKebabCase)
-  val default = TypesafeConfig.fromResourcePath(arangoConfigDescriptor)
+
+  def fromPath(path: String) = TypesafeConfig.fromResourcePath(nested(path) { arangoConfigDescriptor })
+  val default = fromPath(DEFAULT_PATH)
