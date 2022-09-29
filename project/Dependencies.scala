@@ -12,9 +12,11 @@ object Dependencies {
     val zioJsonV = "0.3.0"
     val zioConfMagnoliaV = "3.0.2"
     val zioConfTypesafeV = "3.0.2"
+    val zioPreludeV = "1.0.0-RC16"
 
     val logBackV = "1.4.0"
     val scalaUriV = "4.0.2"
+    val scodecV = "2.2.0"
     val testContainersV = "0.40.10"
   }
 
@@ -36,12 +38,15 @@ object Dependencies {
     val zioConfTypesafe = "dev.zio" %% "zio-config-typesafe" % zioConfTypesafeV
     val zioJson         = "dev.zio" %% "zio-json"            % zioJsonV
     val zioJGolden      = "dev.zio" %% "zio-json-golden"     % zioJsonV
+    val zioPrelude      = "dev.zio" %% "zio-prelude"         % zioPreludeV
     val zioStreams      = "dev.zio" %% "zio-streams"         % zioV
     val zioTest         = "dev.zio" %% "zio-test"            % zioV
     val zioTestSbt      = "dev.zio" %% "zio-test-sbt"        % zioV
 
-    val logBack        = "ch.qos.logback" % "logback-classic"            % Versions.logBackV
-    val testContainers = "com.dimafeng"   %% "testcontainers-scala-core" % Versions.testContainersV
+    val logBack        = "ch.qos.logback" % "logback-classic"            % logBackV
+    val testContainers = "com.dimafeng"   %% "testcontainers-scala-core" % testContainersV
     val scalaUri       = "io.lemonlabs"   %% "scala-uri"                 % scalaUriV
+    val scodecBits     = "org.scodec"     %% "scodec-bits"               % scodecV
+    val scodecCore     = "org.scodec"     %% "scodec-core"               % scodecV
   }
 }

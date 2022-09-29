@@ -24,9 +24,10 @@ object ArangoConfiguration:
 
   import ConfigDescriptor.nested
 
+  @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
   val DEFAULT_PATH = "arangodb"
 
   val arangoConfigDescriptor = descriptor[ArangoConfiguration].mapKey(toKebabCase)
 
-  def fromPath(path: String) = TypesafeConfig.fromResourcePath(nested(path) { arangoConfigDescriptor })
+  def fromPath(path: String) = TypesafeConfig.fromResourcePath(nested(path)(arangoConfigDescriptor))
   val default = fromPath(DEFAULT_PATH)

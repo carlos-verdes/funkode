@@ -41,7 +41,9 @@ lazy val velocypack =
 lazy val velocystream =
   project
     .in(file("velocystream"))
-    .settings(Seq(name := "funkode-velocystream"))
+    .settings(Seq(
+      name := "funkode-velocystream",
+      libraryDependencies ++= Seq(scodecCore)))
     .dependsOn(velocypack)
 
 lazy val arangodb =
@@ -49,7 +51,7 @@ lazy val arangodb =
     .in(file("arangodb"))
     .settings(Seq(
       name := "funkode-arangodb",
-      libraryDependencies ++= Seq(zioConfMagnolia, zioConfTypesafe) ++ testDependencies),
+      libraryDependencies ++= Seq(zioPrelude, zioJson, zioConfMagnolia, zioConfTypesafe) ++ testDependencies),
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
     .dependsOn(velocystream)
 
