@@ -28,7 +28,7 @@ ThisBuild / scalacOptions ++=
   ) ++ Seq("-rewrite", "-indent") ++ Seq("-source", "future-migration")
  */
 
-lazy val commonDependencies = Seq(scalaUri)
+lazy val commonDependencies = Seq(scalaUri, logBack)
 lazy val zioDependencies = Seq(zio, zioJson, zioConcurrent)
 lazy val testDependencies = Seq(tapirSttpStubServer, zioTest, zioTestSbt, sttpClient, zioJGolden).map(_ % Test)
 
@@ -52,6 +52,24 @@ lazy val arangodb =
       libraryDependencies ++= Seq(zioConfMagnolia, zioConfTypesafe) ++ testDependencies),
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
     .dependsOn(velocystream)
+
+lazy val arangodbZioStreams =
+  project
+    .in(file("arangodb-zio-streams"))
+    .settings(Seq(
+      name := "funkode-arangodb-zio-streams",
+      libraryDependencies ++= Seq(zioStreams) ++ testDependencies),
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
+    .dependsOn(arangodb)
+
+lazy val testcontainers =
+  project
+    .in(file("testcontainers-zio2-arangodb"))
+    .settings(Seq(
+      name := "testcontainers-zio2-arangodb",
+      libraryDependencies ++= Seq(zio, testContainers, logBack) ++ testDependencies),
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
+    .dependsOn(arangodb)
 
 lazy val rest =
   project
