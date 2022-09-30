@@ -15,6 +15,7 @@ object DatabaseName:
 
   given Descriptor[DatabaseName] = Descriptor.from(string)
 
+  @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
   val system = DatabaseName("_system")
 
 trait ArangoDataBase:
