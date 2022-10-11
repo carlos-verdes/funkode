@@ -28,39 +28,24 @@ ThisBuild / scalacOptions ++=
   ) ++ Seq("-rewrite", "-indent") ++ Seq("-source", "future-migration")
  */
 
-lazy val commonDependencies = Seq(scalaUri, logBack)
-lazy val zioDependencies = Seq(zio, zioJson, zioConcurrent)
+lazy val commonDependencies = Seq(scalaUri, logBack, zioPrelude, jansi, zioConfMagnolia, zioConfTypesafe)
+lazy val zioDependencies = Seq(zio, zioHttp, zioJson, zioConcurrent, zioConfMagnolia, zioConfTypesafe)
 lazy val testDependencies = Seq(tapirSttpStubServer, zioTest, zioTestSbt, sttpClient, zioJGolden).map(_ % Test)
-
-lazy val velocypack =
-  project
-    .in(file("velocypack"))
-    .settings(Seq(
-      name := "funkode-velocypack"))
-
-lazy val velocystream =
-  project
-    .in(file("velocystream"))
-    .settings(Seq(
-      name := "funkode-velocystream",
-      libraryDependencies ++= Seq(scodecCore)))
-    .dependsOn(velocypack)
 
 lazy val arangodb =
   project
-    .in(file("arangodb"))
+    .in(file("arangodb-client"))
     .settings(Seq(
-      name := "funkode-arangodb",
-      libraryDependencies ++= Seq(zioPrelude, zioJson, zioConfMagnolia, zioConfTypesafe) ++ testDependencies),
-      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
-    .dependsOn(velocystream)
+      name := "arangodb-client",
+      libraryDependencies ++= commonDependencies ++ testDependencies,
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
 
-lazy val arangodbZioStreams =
+lazy val arangodbHttpJson =
   project
-    .in(file("arangodb-zio-streams"))
+    .in(file("arangodb-client-http-json"))
     .settings(Seq(
-      name := "funkode-arangodb-zio-streams",
-      libraryDependencies ++= Seq(zioStreams) ++ testDependencies),
+      name := "arangodb-client-http-json",
+      libraryDependencies ++= commonDependencies ++ zioDependencies ++ testDependencies),
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
     .dependsOn(arangodb)
 
@@ -69,9 +54,9 @@ lazy val testcontainers =
     .in(file("testcontainers-zio2-arangodb"))
     .settings(Seq(
       name := "testcontainers-zio2-arangodb",
-      libraryDependencies ++= Seq(zio, testContainers, logBack) ++ testDependencies),
+      libraryDependencies ++= Seq(testContainers, logBack) ++ zioDependencies ++ testDependencies),
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
-    .dependsOn(arangodb)
+    .dependsOn(arangodbHttpJson)
 
 lazy val rest =
   project
