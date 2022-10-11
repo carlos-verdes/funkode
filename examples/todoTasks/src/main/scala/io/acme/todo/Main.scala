@@ -1,5 +1,7 @@
 package io.acme.todo
 
+import scala.language.unsafeNulls
+
 import zio.*
 import zio.Console.*
 

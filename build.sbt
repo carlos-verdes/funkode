@@ -13,20 +13,20 @@ inThisBuild(
   )
 )
 
-/*
 ThisBuild / scalacOptions ++=
   Seq(
     "-deprecation",
-    "-explain",
+    //"-explain",
     "-feature",
     "-language:implicitConversions",
     "-unchecked",
     "-Xfatal-warnings",
-    "-Yexplicit-nulls", // experimental (I've seen it cause issues with circe)
+//    "-Yexplicit-nulls", // experimental (I've seen it cause issues with circe)
     "-Ykind-projector",
-    "-Ysafe-init", // experimental (I've seen it cause issues with circe)
+//    "-Ysafe-init", // experimental (I've seen it cause issues with circe)
+    "-Yretain-trees"
   ) ++ Seq("-rewrite", "-indent") ++ Seq("-source", "future-migration")
- */
+
 
 lazy val commonDependencies = Seq(scalaUri, logBack, zioPrelude, jansi, zioConfMagnolia, zioConfTypesafe)
 lazy val zioDependencies = Seq(zio, zioHttp, zioJson, zioConcurrent, zioConfMagnolia, zioConfTypesafe)
@@ -37,7 +37,7 @@ lazy val arangodb =
     .in(file("arangodb-client"))
     .settings(Seq(
       name := "arangodb-client",
-      libraryDependencies ++= commonDependencies ++ testDependencies,
+      libraryDependencies ++= commonDependencies ++ zioDependencies ++ testDependencies,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
 
 lazy val arangodbHttpJson =
@@ -52,6 +52,7 @@ lazy val arangodbHttpJson =
 lazy val testcontainers =
   project
     .in(file("testcontainers-zio2-arangodb"))
+    .configs(IntegrationTest)
     .settings(Seq(
       name := "testcontainers-zio2-arangodb",
       libraryDependencies ++= Seq(testContainers, logBack) ++ zioDependencies ++ testDependencies),

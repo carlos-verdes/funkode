@@ -8,7 +8,7 @@ package json
 import zio.json.*
 import zio.json.internal.*
 
-object ModelCodecs:
+trait ModelCodecs:
 
   import models.*
 

@@ -8,21 +8,21 @@ import MessageType.*
 
 // only needed for VelocyStream
 enum MessageType(value: Int, show: String):
-  case Request extends MessageType(1, REQUEST)
-  case ResponseFinal extends MessageType(2, RESPONSE_FINAL)
+  case Request extends MessageType(1, MessageTypeConstants.Request)
+  case ResponseFinal extends MessageType(2, MessageTypeConstants.ResponseFinal)
   // case ResponseChunk extends MessageType(3, RESPONSE_CHUNK)
-  case Authentication extends MessageType(1000, AUTHENTICATION)
+  case Authentication extends MessageType(1000, MessageTypeConstants.Authentication)
 
-object MessageType:
-
-  @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
-  val REQUEST = "request"
+object MessageTypeConstants:
 
   @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
-  val RESPONSE_FINAL = "response-final"
-
-  //@SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
-  //val RESPONSE_CHUNK = "response-chunk"
+  val Request = "request"
 
   @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
-  val AUTHENTICATION = "authentication"
+  val ResponseFinal = "response-final"
+
+  // @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
+  // val RESPONSE_CHUNK = "response-chunk"
+
+  @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
+  val Authentication = "authentication"

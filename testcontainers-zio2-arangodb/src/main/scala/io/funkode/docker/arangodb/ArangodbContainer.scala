@@ -1,11 +1,14 @@
-package io.funkode.docker
+package io.funkode.docker.arangodb
 
 import scala.util.Random
+import scala.language.adhocExtensions
 
 import com.dimafeng.testcontainers.GenericContainer
 import com.dimafeng.testcontainers.GenericContainer.FileSystemBind
+import io.funkode.arangodb
 import io.funkode.arangodb.*
-import io.funkode.arangodb.protocol.ArangoClient
+import io.funkode.arangodb.http.json.ArangoClientJson
+import io.netty.handler.codec.http.HttpHeaderNames
 import org.testcontainers.containers.BindMode
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy
 import zio.*
@@ -32,9 +35,15 @@ class ArangodbContainer(
 
 object ArangodbContainer:
 
+  def waitStrategy: HttpWaitStrategy =
+    (new HttpWaitStrategy).nn.forPath("/_db/test/_api/collection/countries").nn
+
+  def waitStrategyWithCredentials(password: String): HttpWaitStrategy =
+    waitStrategy.withBasicCredentials("root", password).nn
+
   object Defaults:
     val port: Int = 8529
-    val version: String = java.lang.System.getProperty("test.arangodb.version", "3.7.15")
+    val version: String = java.lang.System.getProperty("test.arangodb.version", "3.7.15").nn
     val password: String = Random.nextLong().toHexString
 
   // In the container definition you need to describe, how your container will be constructed:
@@ -54,9 +63,7 @@ object ArangodbContainer:
             classpathResourceMapping = Seq(
               ("docker-initdb.d/", "/docker-entrypoint-initdb.d/", BindMode.READ_ONLY)
             ).map(FileSystemBind.apply),
-            waitStrategy = (new HttpWaitStrategy)
-              .forPath("/_db/test/_api/collection/countries")
-              .withBasicCredentials("root", password)
+            waitStrategy = waitStrategyWithCredentials(password)
           )
         )
       )
@@ -80,10 +87,22 @@ object ArangodbContainer:
     )
 
   def makeScopedClient(container: ArangodbContainer, configuration: ArangoConfiguration, httpClient: Client) =
-    val adjustedConfig =
-      configuration.copy(port = container.container.getFirstMappedPort, host = container.container.getHost)
 
-    ZIO.succeed(io.funkode.arangodb.http.json.ArangoClientHttpJson(adjustedConfig, httpClient))
+    val adjustedConfig =
+      configuration.copy(
+        port = container.container.getFirstMappedPort.nn,
+        host = container.container.getHost.nn
+      )
+    for
+      token <-
+        arangodb.http.json
+          .ArangoClientJson(adjustedConfig, httpClient)
+          .login(adjustedConfig.username, adjustedConfig.password)
+          .map(_.body.jwt)
+      authHeaderName = HttpHeaderNames.AUTHORIZATION.toString
+      authHeaderValue = "Bearer " + token
+    yield arangodb.http.json
+      .ArangoClientJson(adjustedConfig, httpClient.header(authHeaderName, authHeaderValue))
 
   val life =
     ZLayer.scopedEnvironment {

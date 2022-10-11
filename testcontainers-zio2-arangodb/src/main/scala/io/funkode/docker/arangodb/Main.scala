@@ -1,7 +1,7 @@
 /*
  * TODO: License goes here!
  */
-package io.funkode.docker
+package io.funkode.docker.arangodb
 
 import io.funkode.arangodb.*
 import io.funkode.arangodb.http.json.*
@@ -13,6 +13,8 @@ import zio.http.Middleware.*
 
 object Main extends ZIOAppDefault:
 
+  import codecs.given
+
   def app =
     for
       _ <- printLine("Starting container")
@@ -21,13 +23,11 @@ object Main extends ZIOAppDefault:
       _ <- printLine("Arango db container started on port " + container.configuration.port)
       _ <- printLine(s"Try using 'root' user and ${container.configuration.password}")
       _ <- printLine(s"http://localhost:${container.configuration.port}/")
-      client <- ZIO.service[ArangoClientHttpJson]
       _ <- printLine(s"Trying to login")
-      loginResult <- client.login(config.username, config.password)
+      loginResult <- ArangoClientJson.login(config.username, config.password)
       _ <- printLine(s"""Login result: $loginResult""")
-      _ <- client.login(config.username, "").catchSome { case e: models.ArangoError =>
-        printLine(s"""bad login expected error: $e""")
-      }
+      serverInfo <- ArangoServerJson.version(false).map(_.body)
+      _ <- printLine(s"""Server info: $serverInfo""")
       _ <- printLine(s"""Press any key to exit""")
       _ <- readLine
     yield ()
