@@ -37,6 +37,8 @@ object ArangoMessage:
         credentials: UserPassword | Token
     ) extends Header(ArangoVersion.Current, MessageType.Authentication)
 
+  extension [O](header: Header) def withBody(o: O): ArangoMessage[O] = ArangoMessage(header, o)
+
   def DELETE(
       database: DatabaseName,
       request: UrlPath,

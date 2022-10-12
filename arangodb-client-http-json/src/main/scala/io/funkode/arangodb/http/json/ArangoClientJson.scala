@@ -148,10 +148,10 @@ object ArangoClientJson:
   def command[I: JsonEncoder: Tag, O: JsonDecoder: Tag](message: ArangoMessage[I]): JRAIO[ArangoMessage[O]] =
     ArangoClient.command(message)
 
-  def login(username: String, password: String): JRAIO[ArangoMessage[Token]] =
+  def login(username: String, password: String): JRAIO[Token] =
     ArangoClient.login(username, password)
 
-  def apply(config: ArangoConfiguration, httpClient: Client): ArangoClientJson = new ArangoClientJson:
+  def apply(config: ArangoConfiguration, _httpClient: Client): ArangoClientJson = new ArangoClientJson:
 
     import Constants.*
     import Conversions.given
@@ -159,6 +159,9 @@ object ArangoClientJson:
     import codecs.given
 
     val BaseUrl = URL(!!).setScheme(Scheme.HTTP).setHost(config.host).setPort(config.port)
+
+    // TODO review this hack, the idea is to update headers everytime we do login (which changes state)
+    private var httpClient = _httpClient
 
     def parseJson[O: JsonDecoder](bodyString: String): IO[ArangoError, O] =
       ZIO.fromEither(bodyString.fromJson[O].leftMap(ArangoMessage.error(BadRequest.code, _)))
@@ -179,8 +182,14 @@ object ArangoClientJson:
         body <- parseResponseBody(response)
       yield ArangoMessage(response, body)
 
-    def login(username: String, password: String): AIO[ArangoMessage[Token]] =
-      get(ArangoMessage.login(username, password))
+    def login(username: String, password: String): AIO[Token] =
+      for
+        token <- getBody[Token](ArangoMessage.login(username, password))
+        authHeaderName = HttpHeaderNames.AUTHORIZATION.toString
+        authHeaderValue = "Bearer " + token.jwt
+      yield
+        this.httpClient = this.httpClient.header(authHeaderName, authHeaderValue)
+        token
 
     private def parseResponseBody[O: JsonDecoder](response: Response): AIO[O] =
       for
@@ -200,10 +209,6 @@ object ArangoClientJson:
     ZLayer(for
       config <- ZIO.service[ArangoConfiguration]
       httpClient <- ZIO.service[Client]
-      token <-
-        ArangoClientJson(config, httpClient)
-          .login(config.username, config.password)
-          .map(_.body.jwt)
-      authHeaderName = HttpHeaderNames.AUTHORIZATION.toString
-      authHeaderValue = "Bearer " + token
-    yield ArangoClientJson(config, httpClient.header(authHeaderName, authHeaderValue)))
+      arangoClient = ArangoClientJson(config, httpClient)
+      _ <- arangoClient.login(config.username, config.password)
+    yield arangoClient)

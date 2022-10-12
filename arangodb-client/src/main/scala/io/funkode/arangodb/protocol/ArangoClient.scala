@@ -15,7 +15,11 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
   def get[O: Decoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]]
   def command[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]]
 
-  def login(username: String, password: String): AIO[ArangoMessage[Token]]
+  def login(username: String, password: String): AIO[Token]
+
+  def getBody[O: Decoder](header: ArangoMessage.Header): AIO[O] = get(header).map(_.body)
+  def commandBody[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[O] =
+    command(message).map(_.body)
 
 //  def login(token: String): AIO[ArangoMessage.Result]
 
@@ -45,5 +49,5 @@ object ArangoClient:
   def login[Encoder[_]: TagK, Decoder[_]: TagK](
       username: String,
       password: String
-  ): RAIO[Encoder, Decoder, ArangoMessage[Token]] =
+  ): RAIO[Encoder, Decoder, Token] =
     ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](_.login(username, password))
