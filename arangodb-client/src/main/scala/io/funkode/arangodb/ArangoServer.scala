@@ -3,16 +3,16 @@
  */
 package io.funkode.arangodb
 
-import io.funkode.arangodb.protocol.ArangoMessage.GET
 import io.lemonlabs.uri.UrlPath
 import zio.*
+
 import models.*
 import protocol.*
 
 trait ArangoServer:
 
   // def databases(): AIO[Vector[DatabaseName]]
-  def version(details: Boolean = false): IO[ArangoError, ServerVersion]
+  def version(details: Boolean = false): AIO[ServerVersion]
 
   // def engine(): F[ArangoResponse[Engine]]
   // def role(): F[ArangoResponse[ServerRole]]
@@ -21,14 +21,17 @@ trait ArangoServer:
 
 object ArangoServer:
 
-  val ApiVersionPath = UrlPath.fromRaw("/_api/version")
+  import ArangoMessage.*
+
+  val VersionString = "version"
+
   val Details = "details"
 
-  def version[Encoder[_]: TagK, Decoder[_]: TagK](details: Boolean = false)(using
-      Decoder[ServerVersion]
+  def version[Encoder[_]: TagK, Decoder[_]: TagK](
+      details: Boolean = false)(
+      using Decoder[ServerVersion]
   ): RAIO[Encoder, Decoder, ServerVersion] =
     ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](
-      _.get[ServerVersion](
-        GET(DatabaseName.system, ApiVersionPath, parameters = Map(Details -> details.toString))
-      ).map(_.body)
-    )
+      _.getBody[ServerVersion](
+        GET(DatabaseName.system, ApiVersion, parameters = Map(Details -> details.toString))
+      ))

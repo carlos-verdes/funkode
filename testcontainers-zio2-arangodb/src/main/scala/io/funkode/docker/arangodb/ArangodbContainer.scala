@@ -93,16 +93,11 @@ object ArangodbContainer:
         port = container.container.getFirstMappedPort.nn,
         host = container.container.getHost.nn
       )
-    for
-      token <-
-        arangodb.http.json
-          .ArangoClientJson(adjustedConfig, httpClient)
-          .login(adjustedConfig.username, adjustedConfig.password)
-          .map(_.body.jwt)
-      authHeaderName = HttpHeaderNames.AUTHORIZATION.toString
-      authHeaderValue = "Bearer " + token
-    yield arangodb.http.json
-      .ArangoClientJson(adjustedConfig, httpClient.header(authHeaderName, authHeaderValue))
+    import adjustedConfig.*
+
+    val arangoClient = ArangoClientJson(adjustedConfig, httpClient)
+
+    arangoClient.login(username, password) *> ZIO.succeed(arangoClient)
 
   val life =
     ZLayer.scopedEnvironment {
