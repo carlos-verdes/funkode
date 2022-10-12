@@ -170,23 +170,26 @@ object ArangoClientJson:
     def get[O: JsonDecoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]] =
       for
         response <- httpClient.request(header.emptyRequest(BaseUrl)).handleErrors
-        bodyString <- response.body.asString.handleErrors
-        body <-
-          if response.status.isError then parseJson[ArangoError](bodyString).flatMap(r => ZIO.fail(r))
-          else parseJson(bodyString)
+        body <- parseResponseBody(response)
       yield ArangoMessage(response, body)
 
     def command[I: JsonEncoder, O: JsonDecoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
       for
         response <- httpClient.request(message.httpRequest(BaseUrl)).handleErrors
-        bodyString <- response.body.asString.handleErrors
-        body <-
-          if response.status.isError then parseJson[ArangoError](bodyString).flatMap(r => ZIO.fail(r))
-          else parseJson(bodyString)
+        body <- parseResponseBody(response)
       yield ArangoMessage(response, body)
 
     def login(username: String, password: String): AIO[ArangoMessage[Token]] =
       get(ArangoMessage.login(username, password))
+
+    private def parseResponseBody[O: JsonDecoder](response: Response): AIO[O] =
+      for
+        bodyString <- response.body.asString.handleErrors
+        body <-
+          if response.status.isError
+          then parseJson[ArangoError](bodyString).flatMap(r => ZIO.fail(r))
+          else parseJson(bodyString)
+      yield body
 
   // def server: ArangoServer[F]
   // def database(name: DatabaseName): ArangoDatabase[F]

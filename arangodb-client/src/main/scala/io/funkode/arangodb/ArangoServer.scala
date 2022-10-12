@@ -12,7 +12,7 @@ import protocol.*
 trait ArangoServer:
 
   // def databases(): AIO[Vector[DatabaseName]]
-  def version(details: Boolean = false): IO[ArangoError, ArangoMessage[ServerVersion]]
+  def version(details: Boolean = false): IO[ArangoError, ServerVersion]
 
   // def engine(): F[ArangoResponse[Engine]]
   // def role(): F[ArangoResponse[ServerRole]]
@@ -26,9 +26,9 @@ object ArangoServer:
 
   def version[Encoder[_]: TagK, Decoder[_]: TagK](details: Boolean = false)(using
       Decoder[ServerVersion]
-  ): RAIO[Encoder, Decoder, ArangoMessage[ServerVersion]] =
+  ): RAIO[Encoder, Decoder, ServerVersion] =
     ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](
       _.get[ServerVersion](
         GET(DatabaseName.system, ApiVersionPath, parameters = Map(Details -> details.toString))
-      )
+      ).map(_.body)
     )
