@@ -26,7 +26,7 @@ object Main extends ZIOAppDefault:
       _ <- printLine(s"Trying to login")
       loginResult <- ArangoClientJson.login(config.username, config.password)
       _ <- printLine(s"""Login result: $loginResult""")
-      serverInfo <- ArangoServerJson.version(false).map(_.body)
+      serverInfo <- ArangoServerJson.version(false)
       _ <- printLine(s"""Server info: $serverInfo""")
       _ <- printLine(s"""Press any key to exit""")
       _ <- readLine

@@ -11,5 +11,5 @@ object ArangoServerJson:
   import protocol.*
   import codecs.given_JsonCodec_ServerVersion
 
-  def version(details: Boolean = false): JRAIO[ArangoMessage[ServerVersion]] =
+  def version(details: Boolean = false): JRAIO[ServerVersion] =
     ArangoServer.version(details)
