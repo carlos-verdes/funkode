@@ -12,7 +12,7 @@ import zio.test.*
 import models.*
 import protocol.*
 import ArangoMessage.*
-import ModelCodecs.given
+import codecs.given
 import Conversions.given
 import Extensions.*
 
@@ -64,23 +64,23 @@ object ArangoClientSpec extends ZIOSpecDefault with MessageRequestReponseExample
     suite("ArangoClientHttpJson should")(
       test("convert from RequestType to HttpMethod") {
         validateRequestToTypeHttpMethodConversion(RequestType.DELETE, Method.DELETE) &&
-          validateRequestToTypeHttpMethodConversion(RequestType.GET, Method.GET) &&
-          validateRequestToTypeHttpMethodConversion(RequestType.POST, Method.POST) &&
-          validateRequestToTypeHttpMethodConversion(RequestType.PUT, Method.PUT) &&
-          validateRequestToTypeHttpMethodConversion(RequestType.HEAD, Method.HEAD) &&
-          validateRequestToTypeHttpMethodConversion(RequestType.PATCH, Method.PATCH) &&
-          validateRequestToTypeHttpMethodConversion(RequestType.OPTIONS, Method.OPTIONS)
+        validateRequestToTypeHttpMethodConversion(RequestType.GET, Method.GET) &&
+        validateRequestToTypeHttpMethodConversion(RequestType.POST, Method.POST) &&
+        validateRequestToTypeHttpMethodConversion(RequestType.PUT, Method.PUT) &&
+        validateRequestToTypeHttpMethodConversion(RequestType.HEAD, Method.HEAD) &&
+        validateRequestToTypeHttpMethodConversion(RequestType.PATCH, Method.PATCH) &&
+        validateRequestToTypeHttpMethodConversion(RequestType.OPTIONS, Method.OPTIONS)
       },
       test("convert from http response to Arango message header") {
         validateHttpResponseToArangoHeaderConversion(httpResponseLoginOk, arangoResponseLoginOk.header)
       },
       test("convert from Arango meta to Http headers") {
         validateArangoHeaderMetaToHttpHeaderConversion(arangoHeaders, httpHeaders) &&
-          validateArangoHeaderMetaToHttpHeaderConversion(noArangoHeaders, noHttpHeaders)
+        validateArangoHeaderMetaToHttpHeaderConversion(noArangoHeaders, noHttpHeaders)
       },
       test("convert from Arango params to URL query params") {
         validateArangoHeaderParamsToHttpParamsConversion(arangoParams, queryParams) &&
-          validateArangoHeaderParamsToHttpParamsConversion(noArangoParams, noQueryParams)
+        validateArangoHeaderParamsToHttpParamsConversion(noArangoParams, noQueryParams)
       },
       test("convert lemon Path into zio Path") {
         validateLemonPathtoZioPathConversion(emptyLemonPath, httpEmptyPath) &&
@@ -90,6 +90,6 @@ object ArangoClientSpec extends ZIOSpecDefault with MessageRequestReponseExample
       },
       test("create a json body") {
         for jsonBodyFromCaseClass <- credentials.jsonBody.asString
-          yield assertTrue(jsonBodyFromCaseClass == loginResponseOkJson)
+        yield assertTrue(jsonBodyFromCaseClass == loginResponseOkJson)
       }
     )

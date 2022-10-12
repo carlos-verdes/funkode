@@ -8,19 +8,19 @@ package json
 import java.net.{MalformedURLException, URISyntaxException}
 
 import io.lemonlabs.uri.*
+import io.netty.handler.codec.http.HttpHeaderNames
 import zio.*
 import zio.http.*
 import zio.http.model.*
+import zio.http.model.Headers.BearerSchemeName
+import zio.http.model.Status.*
 import zio.json.*
 import zio.prelude.*
-import Status.*
 
 import models.*
 import protocol.*
-import ArangoMessage.*
-import ModelCodecs.given
 
-type ArangoClientHttpJson = protocol.ArangoClient[IO, JsonEncoder, JsonDecoder]
+trait ArangoClientJson extends ArangoClient[JsonEncoder, JsonDecoder]
 
 object Constants:
 
@@ -73,7 +73,7 @@ object Conversions:
   given Conversion[io.lemonlabs.uri.UrlPath, zio.http.Path] = _ match
     case path: AbsoluteOrEmptyPath =>
       path match
-        case EmptyPath => zio.http.Path.empty
+        case EmptyPath           => zio.http.Path.empty
         case AbsolutePath(parts) => zio.http.Path.root ++ parts
     case RootlessPath(parts) => parts
 
@@ -84,12 +84,13 @@ object Conversions:
     if params.isEmpty then QueryParams.empty
     else
       val values = params.view.iterator.toList
-      QueryParams(values.head, values.tail *)
+      QueryParams(values.head, values.tail*)
 
 object Extensions:
 
   import Constants.*
   import Conversions.given
+  import codecs.given
 
   extension [T: JsonEncoder](t: T) def jsonBody = Body.fromString(t.toJson)
 
@@ -115,7 +116,7 @@ object Extensions:
       case ArangoMessage.Header.Authentication(_, credentials) =>
         val body = credentials match
           case userPassword: UserPassword => Body.fromString(userPassword.toJson)
-          case token: Token => Body.fromString(token.toJson)
+          case token: Token               => Body.fromString(token.toJson)
         requestWithBody(body, Map.empty, Method.POST, baseUrl.setPath(LoginPath))
 
   extension [T: JsonEncoder](arangoMessage: ArangoMessage[T])
@@ -123,33 +124,50 @@ object Extensions:
       val header = arangoMessage.header.emptyRequest(baseUrl)
       header.copy(body = arangoMessage.body.jsonBody)
 
+  extension (s: String | Null) def getOrEmpty: String = if s != null then s else ""
+
   extension [A](call: IO[Throwable, A])
     def handleErrors: IO[ArangoError, A] =
       call.catchAll {
         case e: MalformedURLException =>
-          ZIO.fail(ArangoMessage.error(Status.BadRequest.code, e.getMessage))
+          ZIO.fail(ArangoMessage.error(Status.BadRequest.code, e.getMessage.getOrEmpty))
         case t: Throwable =>
-          ZIO.fail(ArangoMessage.error(Status.InternalServerError.code, RuntimeError + t.getMessage))
+          ZIO.fail(
+            ArangoMessage.error(Status.InternalServerError.code, RuntimeError + t.getMessage.getOrEmpty)
+          )
       }
 
-object ArangoClientHttpJson:
+object ArangoClientJson:
 
-  def apply(config: ArangoConfiguration, httpClient: Client): ArangoClientHttpJson = new ArangoClientHttpJson:
+  def head(header: ArangoMessage.Header): JRAIO[ArangoMessage.Header] =
+    ArangoClient.head(header)
+
+  def get[O: JsonDecoder: Tag](header: ArangoMessage.Header): JRAIO[ArangoMessage[O]] =
+    ArangoClient.get(header)
+
+  def command[I: JsonEncoder: Tag, O: JsonDecoder: Tag](message: ArangoMessage[I]): JRAIO[ArangoMessage[O]] =
+    ArangoClient.command(message)
+
+  def login(username: String, password: String): JRAIO[ArangoMessage[Token]] =
+    ArangoClient.login(username, password)
+
+  def apply(config: ArangoConfiguration, httpClient: Client): ArangoClientJson = new ArangoClientJson:
 
     import Constants.*
     import Conversions.given
     import Extensions.*
+    import codecs.given
 
     val BaseUrl = URL(!!).setScheme(Scheme.HTTP).setHost(config.host).setPort(config.port)
 
     def parseJson[O: JsonDecoder](bodyString: String): IO[ArangoError, O] =
       ZIO.fromEither(bodyString.fromJson[O].leftMap(ArangoMessage.error(BadRequest.code, _)))
 
-    def send(header: ArangoMessage.Header): AIO[ArangoMessage.Header] =
+    def head(header: ArangoMessage.Header): AIO[ArangoMessage.Header] =
       for response <- httpClient.request(header.emptyRequest(BaseUrl)).handleErrors
-        yield response
+      yield response
 
-    def send[O: JsonDecoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]] =
+    def get[O: JsonDecoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]] =
       for
         response <- httpClient.request(header.emptyRequest(BaseUrl)).handleErrors
         bodyString <- response.body.asString.handleErrors
@@ -158,23 +176,31 @@ object ArangoClientHttpJson:
           else parseJson(bodyString)
       yield ArangoMessage(response, body)
 
-    def send[I: JsonEncoder, O: JsonDecoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
+    def command[I: JsonEncoder, O: JsonDecoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
       for
         response <- httpClient.request(message.httpRequest(BaseUrl)).handleErrors
         bodyString <- response.body.asString.handleErrors
-        body <- parseJson(bodyString)
+        body <-
+          if response.status.isError then parseJson[ArangoError](bodyString).flatMap(r => ZIO.fail(r))
+          else parseJson(bodyString)
       yield ArangoMessage(response, body)
 
     def login(username: String, password: String): AIO[ArangoMessage[Token]] =
-      send(ArangoMessage.login(username, password))
+      get(ArangoMessage.login(username, password))
 
   // def server: ArangoServer[F]
   // def database(name: DatabaseName): ArangoDatabase[F]
   // def system: ArangoDatabase[F]
   // def db: ArangoDatabase[F]
 
-  val live: ZLayer[ArangoConfiguration with Client, ArangoError, ArangoClientHttpJson] =
+  val live: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientJson] =
     ZLayer(for
       config <- ZIO.service[ArangoConfiguration]
       httpClient <- ZIO.service[Client]
-    yield ArangoClientHttpJson(config, httpClient))
+      token <-
+        ArangoClientJson(config, httpClient)
+          .login(config.username, config.password)
+          .map(_.body.jwt)
+      authHeaderName = HttpHeaderNames.AUTHORIZATION.toString
+      authHeaderValue = "Bearer " + token
+    yield ArangoClientJson(config, httpClient.header(authHeaderName, authHeaderValue)))

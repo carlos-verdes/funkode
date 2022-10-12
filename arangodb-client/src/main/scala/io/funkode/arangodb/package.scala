@@ -1,3 +1,9 @@
 package io.funkode.arangodb
 
-type ArangoResponse[F[_, _], A] = F[models.ArangoError, A]
+import zio.*
+
+import models.*
+import protocol.*
+
+type AIO[A] = IO[ArangoError, A]
+type RAIO[Encoder[_], Decoder[_], O] = ZIO[ArangoClient[Encoder, Decoder], ArangoError, O]
