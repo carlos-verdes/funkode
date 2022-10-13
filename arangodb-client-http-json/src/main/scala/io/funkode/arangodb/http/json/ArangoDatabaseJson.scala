@@ -2,13 +2,13 @@ package io.funkode.arangodb
 package http
 package json
 
+import io.funkode.arangodb.protocol.ArangoClient
+import zio.json.{JsonDecoder, JsonEncoder}
+
 object ArangoDatabaseJson:
 
   import codecs.given
   import models.*
 
-  def create(databaseName: DatabaseName): JRAIO[Boolean] = ArangoDatabase.create(databaseName)
-
-  def info(databaseName: DatabaseName): JRAIO[DatabaseInfo] = ArangoDatabase.info(databaseName)
-
-  def drop(databaseName: DatabaseName): JRAIO[Boolean] = ArangoDatabase.drop(databaseName)
+  def apply(databaseName: DatabaseName): JRAIO[ArangoDatabase[JsonEncoder, JsonDecoder]] =
+    ArangoClient.databaseApi(databaseName)

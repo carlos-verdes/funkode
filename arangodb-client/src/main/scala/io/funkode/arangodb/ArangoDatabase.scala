@@ -11,9 +11,19 @@ import protocol.*
 
 opaque type DatabaseName = String
 
-trait ArangoDatabase:
+object DatabaseName:
 
-  def name: DatabaseName
+  def apply(name: String): DatabaseName = name
+  extension (name: DatabaseName) def unwrap: String = name
+
+  given Descriptor[DatabaseName] = Descriptor.from(string)
+
+  @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
+  val system = DatabaseName("_system")
+
+trait ArangoDatabase[Encoder[_], Decoder[_]]:
+
+  def database: DatabaseName
 
   /*
   def collection(name: CollectionName): ArangoCollection[F]
@@ -29,11 +39,15 @@ trait ArangoDatabase:
   def wal: ArangoWal[F]
   */
 
-  def create(createDatabase: DatabaseCreate): AIO[Boolean]
+  def create(
+      users: Vector[DatabaseCreate.User] = Vector.empty)(
+      using Encoder[DatabaseCreate],
+      Decoder[ArangoResult[Boolean]]
+  ): AIO[Boolean]
 
-  def info(databaseName: DatabaseName): AIO[DatabaseInfo]
+  def info(using Decoder[ArangoResult[DatabaseInfo]]): AIO[DatabaseInfo]
 
-  def drop(databaseName: DatabaseName): AIO[Boolean]
+  def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean]
 
   /*
   def collections(excludeSystem: Boolean = false): F[ArangoResponse[Vector[CollectionInfo]]]
@@ -45,49 +59,33 @@ trait ArangoDatabase:
   def query(qs: String): ArangoQuery[F, VObject] = self.query(qs, VObject.empty)
   */
 
-object DatabaseName:
-
-  def apply(name: String): DatabaseName = name
-  extension (name: DatabaseName) def unwrap: String = name
-
-  given Descriptor[DatabaseName] = Descriptor.from(string)
-
-  @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
-  val system = DatabaseName("_system")
-
 object ArangoDatabase:
 
   import ArangoMessage.*
 
-  def create[Encoder[_] : TagK, Decoder[_] : TagK](
-      databaseName: DatabaseName)(
-      using Encoder[DatabaseCreate],
-      Decoder[ArangoResult[Boolean]]
-  ): RAIO[Encoder, Decoder, Boolean] =
-    ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](
-      _.commandBody[DatabaseCreate, ArangoResult[Boolean]](
-        POST(DatabaseName.system, ApiDatabase).withBody(DatabaseCreate(databaseName.unwrap))
-      ).map(_.result)
-    )
+  class Impl[Encoder[_], Decoder[_]](
+      databaseName: DatabaseName,
+      arangoClient: ArangoClient[Encoder, Decoder]
+  ) extends ArangoDatabase[Encoder, Decoder]:
 
-  def info[Encoder[_] : TagK, Decoder[_] : TagK](
-    databaseName: DatabaseName)(
-    using Encoder[DatabaseCreate],
-    Decoder[ArangoResult[DatabaseInfo]]
-  ): RAIO[Encoder, Decoder, DatabaseInfo] =
-    ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](
-      _.getBody[ArangoResult[DatabaseInfo]](
-        GET(databaseName, ApiDatabase.addPart("current"))
-      ).map(_.result)
-    )
+    def database = databaseName
 
-  def drop[Encoder[_] : TagK, Decoder[_] : TagK](
-    databaseName: DatabaseName)(
-    using Encoder[DatabaseCreate],
-    Decoder[ArangoResult[Boolean]]
-  ): RAIO[Encoder, Decoder, Boolean] =
-    ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](
-      _.getBody[ArangoResult[Boolean]](
-        DELETE(databaseName, ApiDatabase.addPart(databaseName.unwrap))
+    def create(
+        users: Vector[DatabaseCreate.User] = Vector.empty)(
+        using Encoder[DatabaseCreate],
+        Decoder[ArangoResult[Boolean]]
+    ): AIO[Boolean] =
+      val databaseCreate = DatabaseCreate(database, users)
+      arangoClient.commandBody[DatabaseCreate, ArangoResult[Boolean]](
+          POST(DatabaseName.system, ApiDatabaseManagement).withBody(databaseCreate)
+        ).map(_.result)
+
+    def info(using Decoder[ArangoResult[DatabaseInfo]]): AIO[DatabaseInfo] =
+      arangoClient.getBody[ArangoResult[DatabaseInfo]](
+          GET(database, ApiDatabaseManagement.addPart("current"))
+        ).map(_.result)
+
+    def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean] =
+      arangoClient.getBody[ArangoResult[Boolean]](
+        DELETE(DatabaseName.system, ApiDatabaseManagement.addPart(database.unwrap))
       ).map(_.result)
-    )

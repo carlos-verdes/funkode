@@ -33,7 +33,6 @@ object ModelCodecsSpec extends ZIOSpecDefault with ModelExamples:
   import codecs.given
 
   def assertDecode[T: JsonDecoder](json: String, expected: T) =
-    println(s"trying to decode: \n$json")
     assert(json.fromJson[T])(isRight(equalTo(expected)))
 
   override def spec: Spec[TestEnvironment, Any] =

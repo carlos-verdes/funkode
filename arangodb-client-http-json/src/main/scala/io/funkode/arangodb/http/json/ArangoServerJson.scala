@@ -12,4 +12,4 @@ object ArangoServerJson:
   import codecs.given_JsonCodec_ServerVersion
 
   def version(details: Boolean = false): JRAIO[ServerVersion] =
-    ArangoServer.version(details)
+    ZIO.serviceWithZIO[ArangoClient[JsonEncoder, JsonDecoder]](_.server.version(details))

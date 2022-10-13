@@ -1,9 +1,10 @@
-package io.funkode.arangodb.models
+package io.funkode.arangodb
+package models
 
 case class DatabaseCreate(
-    name: String,
-    options: Map[String, String] = Map.empty,
-    users: Vector[DatabaseCreate.User] = Vector.empty
+    name: DatabaseName,
+    users: Vector[DatabaseCreate.User] = Vector.empty,
+    options: Map[String, String] = Map.empty
 )
 
 object DatabaseCreate:
