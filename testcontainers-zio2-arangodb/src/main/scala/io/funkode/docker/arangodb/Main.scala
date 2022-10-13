@@ -18,7 +18,6 @@ object Main extends ZIOAppDefault:
   def app =
     for
       _ <- printLine("Starting container")
-      config <- ZIO.service[ArangoConfiguration]
       container <- ZIO.service[ArangodbContainer]
       _ <- printLine("Arango db container started on port " + container.configuration.port)
       _ <- printLine(s"Try using 'root' user and ${container.configuration.password}")
@@ -26,14 +25,14 @@ object Main extends ZIOAppDefault:
       serverInfo <- ArangoServerJson.version(false)
       _ <- printLine(s"""Server info: $serverInfo""")
       _ <- printLine(s"""Creating test2 database""")
-      dbCreated <- ArangoDatabaseJson.create(DatabaseName("test2"))
+      databaseApi <- ArangoClientJson.databaseApi(DatabaseName("test2"))
+      dbCreated <- databaseApi.create()
       _ <- printLine(s"""Database created? $dbCreated""")
-      databaseInfo <- ArangoDatabaseJson.info(DatabaseName("test2"))
+      databaseInfo <- databaseApi.info
       _ <- printLine(s"""Database info $databaseInfo""")
       _ <- printLine(s"""Deleting test2 database""")
-      dbDropped <- ArangoDatabaseJson.drop(DatabaseName("test2"))
+      dbDropped <- databaseApi.drop
       _ <- printLine(s"""Database dropped? $dbDropped""")
-
       _ <- printLine(s"""Press any key to exit""")
       _ <- readLine
     yield ()

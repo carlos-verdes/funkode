@@ -102,8 +102,10 @@ object Extensions:
 
   extension (header: ArangoMessage.Header)
     def emptyRequest(baseUrl: URL) = header match
-      case ArangoMessage.Header.Request(_, _, requestType, requestPath, parameters, meta) =>
-        requestHeader(meta, requestType, baseUrl.setPath(requestPath).setQueryParams(parameters))
+      case ArangoMessage.Header.Request(_, database, requestType, requestPath, parameters, meta) =>
+        val requestUrl = baseUrl.setPath(apiDatabasePrefix(database).addParts(requestPath.parts))
+        println(s"$requestType ${requestUrl}")
+        requestHeader(meta, requestType, requestUrl.setQueryParams(parameters))
 
       // support for async responses https://www.arangodb.com/docs/stable/http/async-results-management.html#managing-async-results-via-http
       case ArangoMessage.Header.Response(_, _, _, meta) =>
@@ -150,6 +152,9 @@ object ArangoClientJson:
 
   def login(username: String, password: String): JRAIO[Token] =
     ArangoClient.login(username, password)
+
+  def databaseApi(databaseName: DatabaseName): JRAIO[ArangoDatabase[JsonEncoder, JsonDecoder]] =
+    ArangoClient.databaseApi(databaseName)
 
   def apply(config: ArangoConfiguration, _httpClient: Client): ArangoClientJson = new ArangoClientJson:
 

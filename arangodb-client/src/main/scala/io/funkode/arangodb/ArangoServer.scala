@@ -9,10 +9,12 @@ import zio.*
 import models.*
 import protocol.*
 
-trait ArangoServer:
+trait ArangoServer[Decoder[_]]:
+
+  import ArangoMessage.*
 
   // def databases(): AIO[Vector[DatabaseName]]
-  def version(details: Boolean = false): AIO[ServerVersion]
+  def version(details: Boolean = false)(using D: Decoder[ServerVersion]): AIO[ServerVersion]
 
   // def engine(): F[ArangoResponse[Engine]]
   // def role(): F[ArangoResponse[ServerRole]]
@@ -27,11 +29,11 @@ object ArangoServer:
 
   val Details = "details"
 
-  def version[Encoder[_]: TagK, Decoder[_]: TagK](
-      details: Boolean = false)(
-      using Decoder[ServerVersion]
-  ): RAIO[Encoder, Decoder, ServerVersion] =
-    ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](
-      _.getBody[ServerVersion](
+  class Impl[Encoder[_], Decoder[_]](
+      arangoClient: ArangoClient[Encoder, Decoder]
+  ) extends ArangoServer[Decoder]:
+
+    def version(details: Boolean = false)(using D: Decoder[ServerVersion]): AIO[ServerVersion] =
+      arangoClient.getBody[ServerVersion](
         GET(DatabaseName.system, ApiVersion, parameters = Map(Details -> details.toString))
-      ))
+      )

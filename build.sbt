@@ -30,11 +30,13 @@ ThisBuild / scalacOptions ++=
 
 lazy val commonDependencies = Seq(scalaUri, logBack, zioPrelude, jansi, zioConfMagnolia, zioConfTypesafe)
 lazy val zioDependencies = Seq(zio, zioHttp, zioJson, zioConcurrent, zioConfMagnolia, zioConfTypesafe)
-lazy val testDependencies = Seq(tapirSttpStubServer, zioTest, zioTestSbt, sttpClient, zioJGolden).map(_ % Test)
+lazy val testDependencies = Seq(tapirSttpStubServer, zioTest, zioTestSbt, sttpClient, zioJGolden).map(_ % "it, test")
 
 lazy val arangodb =
   project
     .in(file("arangodb-client"))
+    .configs(IntegrationTest)
+    .settings(Defaults.itSettings)
     .settings(Seq(
       name := "arangodb-client",
       libraryDependencies ++= commonDependencies ++ zioDependencies ++ testDependencies,
@@ -43,6 +45,8 @@ lazy val arangodb =
 lazy val arangodbHttpJson =
   project
     .in(file("arangodb-client-http-json"))
+    .configs(IntegrationTest)
+    .settings(Defaults.itSettings)
     .settings(Seq(
       name := "arangodb-client-http-json",
       libraryDependencies ++= commonDependencies ++ zioDependencies ++ testDependencies),
@@ -53,6 +57,7 @@ lazy val testcontainers =
   project
     .in(file("testcontainers-zio2-arangodb"))
     .configs(IntegrationTest)
+    .settings(Defaults.itSettings)
     .settings(Seq(
       name := "testcontainers-zio2-arangodb",
       libraryDependencies ++= Seq(testContainers, logBack) ++ zioDependencies ++ testDependencies),
@@ -62,6 +67,8 @@ lazy val testcontainers =
 lazy val rest =
   project
     .in(file("rest"))
+    .configs(IntegrationTest)
+    .settings(Defaults.itSettings)
     .settings(Seq(
       name := "funkode-rest",
       libraryDependencies ++= (commonDependencies ++ zioDependencies ++ testDependencies)))
