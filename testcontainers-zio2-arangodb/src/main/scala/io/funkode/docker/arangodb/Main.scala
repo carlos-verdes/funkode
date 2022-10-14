@@ -13,6 +13,7 @@ import zio.http.Middleware.*
 
 object Main extends ZIOAppDefault:
 
+  import models.*
   import codecs.given
 
   def app =

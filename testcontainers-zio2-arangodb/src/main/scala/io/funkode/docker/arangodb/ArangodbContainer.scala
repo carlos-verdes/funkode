@@ -7,6 +7,7 @@ import com.dimafeng.testcontainers.GenericContainer
 import com.dimafeng.testcontainers.GenericContainer.FileSystemBind
 import io.funkode.arangodb
 import io.funkode.arangodb.*
+import io.funkode.arangodb.models.*
 import io.funkode.arangodb.http.json.ArangoClientJson
 import io.netty.handler.codec.http.HttpHeaderNames
 import org.testcontainers.containers.BindMode

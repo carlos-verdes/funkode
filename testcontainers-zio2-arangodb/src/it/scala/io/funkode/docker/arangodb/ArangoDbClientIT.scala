@@ -13,6 +13,8 @@ trait ArangoExamples:
   val testDatabaseName = DatabaseName("ittestdb")
   val testDatabase = DatabaseInfo(testDatabaseName.unwrap, testDatabaseName.unwrap, "", false)
 
+  val petsCollection = CollectionName("pets")
+
 object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
 
   import codecs.given
@@ -36,7 +38,17 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(!dataInfo.isSystem)
       },
       test("Create a collection") {
-        assertTrue(true)
+        for
+          databaseApi <- ArangoDatabaseJson(testDatabaseName)
+          collection = databaseApi.collectionApi(petsCollection)
+          createdCollection <- collection.create()
+          collectionInfo <- collection.info
+          collectionChecksum <- collection.checksum()
+        yield
+          assertTrue(createdCollection.name == petsCollection) &&
+            assertTrue(collectionInfo == createdCollection) &&
+            assertTrue(collectionChecksum.name == petsCollection) &&
+            assertTrue(!createdCollection.isSystem)
       },
       test("Save documents in a collection") {
         assertTrue(true)
@@ -48,7 +60,13 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
         assertTrue(true)
       },
       test("Drop a collection") {
-        assertTrue(true)
+        for
+          databaseApi <- ArangoDatabaseJson(testDatabaseName)
+          collection = databaseApi.collectionApi(petsCollection)
+          collectionInfo <- collection.info
+          deleteResult <- collection.drop()
+        yield
+          assertTrue(deleteResult.id == collectionInfo.id)
       },
       test("Drop a database") {
         for
