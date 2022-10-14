@@ -35,5 +35,5 @@ object ArangoServer:
 
     def version(details: Boolean = false)(using D: Decoder[ServerVersion]): AIO[ServerVersion] =
       arangoClient.getBody[ServerVersion](
-        GET(DatabaseName.system, ApiVersion, parameters = Map(Details -> details.toString))
+        GET(DatabaseName.system, ApiVersionPath, parameters = Map(Details -> details.toString))
       )

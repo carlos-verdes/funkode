@@ -16,7 +16,7 @@ final case class ArangoConfiguration(
     readBufferSize: Int = ArangoConfiguration.READ_BUFFER_SIZE_DEFAULT,
     connectTimeout: Duration = ArangoConfiguration.CONNECT_TIMEOUT_DEFAULT,
     replyTimeout: Duration = ArangoConfiguration.REPLY_TIMEOUT_DEFAULT,
-    database: DatabaseName = DatabaseName.system
+    database: models.DatabaseName = models.DatabaseName.system
 )
 
 object ArangoConfiguration:

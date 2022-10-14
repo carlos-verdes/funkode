@@ -3,31 +3,17 @@ package io.funkode.arangodb
 import io.lemonlabs.uri.UrlPath
 import io.lemonlabs.uri.typesafe.dsl.*
 import zio.*
-import zio.config.ConfigDescriptor.*
-import zio.config.magnolia.{descriptor, Descriptor}
 
 import models.*
 import protocol.*
 
-opaque type DatabaseName = String
-
-object DatabaseName:
-
-  def apply(name: String): DatabaseName = name
-  extension (name: DatabaseName) def unwrap: String = name
-
-  given Descriptor[DatabaseName] = Descriptor.from(string)
-
-  @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
-  val system = DatabaseName("_system")
-
 trait ArangoDatabase[Encoder[_], Decoder[_]]:
 
-  def database: DatabaseName
+  def name: DatabaseName
+
+  def collectionApi(name: CollectionName): ArangoCollection[Encoder, Decoder]
 
   /*
-  def collection(name: CollectionName): ArangoCollection[F]
-
   def document(handle: DocumentHandle): ArangoDocument[F]
 
   def graphs(): F[ArangoResponse[Vector[GraphInfo]]]
@@ -68,24 +54,27 @@ object ArangoDatabase:
       arangoClient: ArangoClient[Encoder, Decoder]
   ) extends ArangoDatabase[Encoder, Decoder]:
 
-    def database = databaseName
+    def name = databaseName
+
+    override def collectionApi(collectionName: CollectionName): ArangoCollection[Encoder, Decoder] =
+      new ArangoCollection.Impl[Encoder, Decoder](this.name, collectionName, arangoClient)
 
     def create(
         users: Vector[DatabaseCreate.User] = Vector.empty)(
         using Encoder[DatabaseCreate],
         Decoder[ArangoResult[Boolean]]
     ): AIO[Boolean] =
-      val databaseCreate = DatabaseCreate(database, users)
+      val databaseCreate = DatabaseCreate(name, users)
       arangoClient.commandBody[DatabaseCreate, ArangoResult[Boolean]](
-          POST(DatabaseName.system, ApiDatabaseManagement).withBody(databaseCreate)
+          POST(DatabaseName.system, ApiDatabaseManagementPath).withBody(databaseCreate)
         ).map(_.result)
 
     def info(using Decoder[ArangoResult[DatabaseInfo]]): AIO[DatabaseInfo] =
       arangoClient.getBody[ArangoResult[DatabaseInfo]](
-          GET(database, ApiDatabaseManagement.addPart("current"))
+          GET(name, ApiDatabaseManagementPath.addPart("current"))
         ).map(_.result)
 
     def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean] =
       arangoClient.getBody[ArangoResult[Boolean]](
-        DELETE(DatabaseName.system, ApiDatabaseManagement.addPart(database.unwrap))
+        DELETE(DatabaseName.system, ApiDatabaseManagementPath.addPart(name.unwrap))
       ).map(_.result)

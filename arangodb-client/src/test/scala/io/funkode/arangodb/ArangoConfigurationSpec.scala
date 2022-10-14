@@ -10,6 +10,8 @@ import zio.config.*
 import zio.test.*
 import zio.test.Assertion.*
 
+import models.*
+
 trait ArangoConfigExamples:
 
   val expectedReferenceConf = ArangoConfiguration(

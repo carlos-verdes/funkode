@@ -11,16 +11,22 @@ type RAIO[Encoder[_], Decoder[_], O] = ZIO[ArangoClient[Encoder, Decoder], Arang
 
 
 val Api = "_api"
+val Collection = "collection"
+val Cursor = "cursor"
 val Database = "database"
+val DocumentString = "document"
 val Db = "_db"
+val Gharial = "gharial"
+val Index = "index"
+val Transaction = "transaction"
 val VersionString = "version"
 
-val ApiVersion = AbsolutePath.fromParts(Api, VersionString)
-val ApiDatabaseManagement = AbsolutePath.fromParts(Api, Database)
-def apiDatabasePrefix(databaseName: DatabaseName) = AbsolutePath.fromParts(Db, databaseName.unwrap)
-val ApiCollection = UrlPath.parse("/_api/collection")
-val ApiDocument = UrlPath.parse("/_api/document")
-val ApiIndex = UrlPath.parse("/_api/index")
-val ApiCursor = UrlPath.parse("/_api/cursor")
-val ApiTransaction = UrlPath.parse("/_api/transaction")
-val ApiGharial = UrlPath.parse("/_api/gharial")
+val ApiVersionPath = AbsolutePath.fromParts(Api, VersionString)
+val ApiDatabaseManagementPath = AbsolutePath.fromParts(Api, Database)
+def apiDatabasePrefixPath(databaseName: DatabaseName) = AbsolutePath.fromParts(Db, databaseName.unwrap)
+val ApiCollectionPath = AbsolutePath.fromParts(Api, Collection)
+val ApiDocumentPath = AbsolutePath.fromParts(Api, DocumentString)
+val ApiIndexPath = AbsolutePath.fromParts(Api, Index)
+val ApiCursorPath = AbsolutePath.fromParts(Api, Cursor)
+val ApiTransactionPath = AbsolutePath.fromParts(Api, Transaction)
+val ApiGharialPath = AbsolutePath.fromParts(Api, Gharial)
