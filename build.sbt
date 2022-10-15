@@ -82,4 +82,5 @@ lazy val todo =
 addCommandAlias("ll", "projects")
 addCommandAlias("checkFmtAll", ";scalafmtSbtCheck;scalafmtCheckAll")
 addCommandAlias("testAll", ";compile;test;stryker")
-addCommandAlias("sanity", ";compile;scalafmtAll;test;stryker")
+//addCommandAlias("sanity", ";compile;scalafmtAll;test;stryker")
+addCommandAlias("sanity", ";compile;scalafmtAll;test")

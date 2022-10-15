@@ -10,13 +10,10 @@ object DeriveEnumCodec:
   inline def gen[T](inline unwrap: T => Int, inline create: Int => T): zio.json.JsonCodec[T] =
     ${ createOpaqueCodec('create, 'unwrap) }
 
-  def createOpaqueCodec[T](
-      create: Expr[Int => T],
-      unwrap: Expr[T => Int])(
-      using t: Type[T])(using Quotes) =
+  def createOpaqueCodec[T](create: Expr[Int => T], unwrap: Expr[T => Int])(using t: Type[T])(using Quotes) =
     '{
-        val encoder = JsonEncoder[Int].contramap($unwrap)
-        val decoder = JsonDecoder[Int].map($create)
+      val encoder = JsonEncoder[Int].contramap($unwrap)
+      val decoder = JsonDecoder[Int].map($create)
 
-        JsonCodec(encoder, decoder)
+      JsonCodec(encoder, decoder)
     }

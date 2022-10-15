@@ -28,7 +28,6 @@ object DocumentKey:
   val empty = DocumentKey("")
   extension (key: DocumentKey) def isEmpty: Boolean = key.isEmpty
 
-
 object DatabaseName:
 
   def apply(name: String): DatabaseName = name

@@ -56,5 +56,6 @@ object ArangoClient:
     ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](_.login(username, password))
 
   def databaseApi[Encoder[_]: TagK, Decoder[_]: TagK](
-      databaseName: DatabaseName): URIO[ArangoClient[Encoder, Decoder], ArangoDatabase[Encoder, Decoder]] =
+      databaseName: DatabaseName
+  ): URIO[ArangoClient[Encoder, Decoder], ArangoDatabase[Encoder, Decoder]] =
     ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](c => ZIO.succeed(c.database(databaseName)))
