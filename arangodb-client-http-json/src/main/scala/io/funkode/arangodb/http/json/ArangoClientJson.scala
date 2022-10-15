@@ -194,10 +194,8 @@ object ArangoClientJson:
       yield ArangoMessage(response, body)
 
     def login(username: String, password: String): AIO[Token] =
-      for
-        token <- getBody[Token](ArangoMessage.login(username, password))
-      yield
-        token
+      for token <- getBody[Token](ArangoMessage.login(username, password))
+      yield token
 
     private def parseResponseBody[O: JsonDecoder](response: Response): AIO[O] =
       for
@@ -215,8 +213,7 @@ object ArangoClientJson:
   // def db: ArangoDatabase[F]
 
   def initArangoClient(config: ArangoConfiguration, httpClient: Client) =
-    for
-      token <- ArangoClientJson(config, httpClient).login(config.username, config.password)
+    for token <- ArangoClientJson(config, httpClient).login(config.username, config.password)
     yield ArangoClientJson(config, httpClient, Some(token))
 
   val live: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientJson] =

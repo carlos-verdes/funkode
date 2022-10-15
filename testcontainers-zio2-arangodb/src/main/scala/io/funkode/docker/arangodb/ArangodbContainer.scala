@@ -89,10 +89,10 @@ object ArangodbContainer:
 
   def makeScopedClient(container: ArangodbContainer, configuration: ArangoConfiguration, httpClient: Client) =
     ArangoClientJson.initArangoClient(
-        configuration.copy(
-          port = container.container.getFirstMappedPort.nn,
-          host = container.container.getHost.nn),
-        httpClient)
+      configuration
+        .copy(port = container.container.getFirstMappedPort.nn, host = container.container.getHost.nn),
+      httpClient
+    )
 
   val life =
     ZLayer.scopedEnvironment {

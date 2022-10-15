@@ -9,7 +9,6 @@ import protocol.*
 type AIO[A] = IO[ArangoError, A]
 type RAIO[Encoder[_], Decoder[_], O] = ZIO[ArangoClient[Encoder, Decoder], ArangoError, O]
 
-
 val Api = "_api"
 val Collection = "collection"
 val Cursor = "cursor"

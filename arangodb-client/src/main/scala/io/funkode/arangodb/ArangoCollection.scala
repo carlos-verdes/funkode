@@ -15,21 +15,18 @@ trait ArangoCollection[Encoder[_], Decoder[_]]:
   def indexes: ArangoIndexes[F]
 
   def index(id: String): ArangoIndex[F]
-*/
-  def create(
-      setup: CollectionCreate => CollectionCreate = identity)(
-      using Encoder[CollectionCreate],
+   */
+  def create(setup: CollectionCreate => CollectionCreate = identity)(using
+      Encoder[CollectionCreate],
       Decoder[CollectionInfo]
   ): AIO[CollectionInfo]
 
-  def checksum(
-      withRevisions: Boolean = false,
-      withData: Boolean = false)(
-      using Decoder[CollectionChecksum]
+  def checksum(withRevisions: Boolean = false, withData: Boolean = false)(using
+      Decoder[CollectionChecksum]
   ): AIO[CollectionChecksum]
 
   def info(using Decoder[CollectionInfo]): AIO[CollectionInfo]
-/*
+  /*
   def revision(): F[ArangoResponse[CollectionRevision]]
 
   def properties(): F[ArangoResponse[CollectionProperties]]
@@ -38,13 +35,13 @@ trait ArangoCollection[Encoder[_], Decoder[_]]:
     schema: Option[CollectionSchema] = None): F[ArangoResponse[CollectionProperties]]
 
   def truncate(waitForSync: Boolean = false, compact: Boolean = true): F[ArangoResponse[CollectionInfo]]
-*/
+   */
   def drop(isSystem: Boolean = false)(using D: Decoder[DeleteResult]): AIO[DeleteResult]
 /*
   def rename(newName: CollectionName): F[ArangoResponse[CollectionInfo]]
 
   def all: ArangoQuery[F, VObject]
-  */
+ */
 
 object ArangoCollection:
 
@@ -60,20 +57,17 @@ object ArangoCollection:
 
     val path = ApiCollectionPath.addPart(name.unwrap)
 
-    def create(
-      setup: CollectionCreate => CollectionCreate = identity)(
-      using Encoder[CollectionCreate],
-      Decoder[CollectionInfo]
+    def create(setup: CollectionCreate => CollectionCreate = identity)(using
+        Encoder[CollectionCreate],
+        Decoder[CollectionInfo]
     ): AIO[CollectionInfo] =
       val options = setup(CollectionCreate(name))
       arangoClient.commandBody[CollectionCreate, CollectionInfo](
         POST(database, ApiCollectionPath, options.parameters).withBody(options)
       )
 
-    def checksum(
-      withRevisions: Boolean = false,
-      withData: Boolean = false)(
-      using Decoder[CollectionChecksum]
+    def checksum(withRevisions: Boolean = false, withData: Boolean = false)(using
+        Decoder[CollectionChecksum]
     ): AIO[CollectionChecksum] =
       arangoClient.getBody[CollectionChecksum](
         GET(
@@ -81,7 +75,7 @@ object ArangoCollection:
           path.addPart("checksum"),
           Map(
             "withRevisions" -> withRevisions.toString,
-            "withData" -> withData.toString,
+            "withData" -> withData.toString
           )
         )
       )

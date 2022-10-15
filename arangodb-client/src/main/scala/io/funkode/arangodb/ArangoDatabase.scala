@@ -23,11 +23,10 @@ trait ArangoDatabase[Encoder[_], Decoder[_]]:
   def transactions: ArangoTransactions[F]
 
   def wal: ArangoWal[F]
-  */
+   */
 
-  def create(
-      users: Vector[DatabaseCreate.User] = Vector.empty)(
-      using Encoder[DatabaseCreate],
+  def create(users: Vector[DatabaseCreate.User] = Vector.empty)(using
+      Encoder[DatabaseCreate],
       Decoder[ArangoResult[Boolean]]
   ): AIO[Boolean]
 
@@ -43,7 +42,7 @@ trait ArangoDatabase[Encoder[_], Decoder[_]]:
   def query[V: VPackEncoder](qs: String, bindVars: V): ArangoQuery[F, V] = self.query(Query(qs, bindVars))
 
   def query(qs: String): ArangoQuery[F, VObject] = self.query(qs, VObject.empty)
-  */
+   */
 
 object ArangoDatabase:
 
@@ -59,22 +58,27 @@ object ArangoDatabase:
     override def collectionApi(collectionName: CollectionName): ArangoCollection[Encoder, Decoder] =
       new ArangoCollection.Impl[Encoder, Decoder](this.name, collectionName, arangoClient)
 
-    def create(
-        users: Vector[DatabaseCreate.User] = Vector.empty)(
-        using Encoder[DatabaseCreate],
+    def create(users: Vector[DatabaseCreate.User] = Vector.empty)(using
+        Encoder[DatabaseCreate],
         Decoder[ArangoResult[Boolean]]
     ): AIO[Boolean] =
       val databaseCreate = DatabaseCreate(name, users)
-      arangoClient.commandBody[DatabaseCreate, ArangoResult[Boolean]](
+      arangoClient
+        .commandBody[DatabaseCreate, ArangoResult[Boolean]](
           POST(DatabaseName.system, ApiDatabaseManagementPath).withBody(databaseCreate)
-        ).map(_.result)
+        )
+        .map(_.result)
 
     def info(using Decoder[ArangoResult[DatabaseInfo]]): AIO[DatabaseInfo] =
-      arangoClient.getBody[ArangoResult[DatabaseInfo]](
+      arangoClient
+        .getBody[ArangoResult[DatabaseInfo]](
           GET(name, ApiDatabaseManagementPath.addPart("current"))
-        ).map(_.result)
+        )
+        .map(_.result)
 
     def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean] =
-      arangoClient.getBody[ArangoResult[Boolean]](
-        DELETE(DatabaseName.system, ApiDatabaseManagementPath.addPart(name.unwrap))
-      ).map(_.result)
+      arangoClient
+        .getBody[ArangoResult[Boolean]](
+          DELETE(DatabaseName.system, ApiDatabaseManagementPath.addPart(name.unwrap))
+        )
+        .map(_.result)

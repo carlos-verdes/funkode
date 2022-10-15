@@ -6,5 +6,5 @@ final case class CollectionInfo(
     status: CollectionStatus,
     `type`: CollectionType,
     isSystem: Boolean,
-    globallyUniqueId: String,
+    globallyUniqueId: String
 )

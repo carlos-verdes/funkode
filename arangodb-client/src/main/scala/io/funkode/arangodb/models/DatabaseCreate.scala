@@ -10,8 +10,8 @@ case class DatabaseCreate(
 object DatabaseCreate:
 
   final case class User(
-    username: String,
-    passwd: Option[String] = None,
-    active: Boolean = true,
-    //  extra: Option[Any],
+      username: String,
+      passwd: Option[String] = None,
+      active: Boolean = true
+      //  extra: Option[Any],
   )
