@@ -88,17 +88,11 @@ object ArangodbContainer:
     )
 
   def makeScopedClient(container: ArangodbContainer, configuration: ArangoConfiguration, httpClient: Client) =
-
-    val adjustedConfig =
-      configuration.copy(
-        port = container.container.getFirstMappedPort.nn,
-        host = container.container.getHost.nn
-      )
-    import adjustedConfig.*
-
-    val arangoClient = ArangoClientJson(adjustedConfig, httpClient)
-
-    arangoClient.login(username, password) *> ZIO.succeed(arangoClient)
+    ArangoClientJson.initArangoClient(
+        configuration.copy(
+          port = container.container.getFirstMappedPort.nn,
+          host = container.container.getHost.nn),
+        httpClient)
 
   val life =
     ZLayer.scopedEnvironment {
