@@ -101,16 +101,18 @@ object Extensions:
     Request(Body.empty, headers, method, url, Version.Http_1_1, Option.empty)
 
   extension (header: ArangoMessage.Header)
-    def emptyRequest(baseUrl: URL) = header match
+    def emptyRequest(baseUrl: URL, extraHeaders: Headers = Headers.empty) = header match
       case ArangoMessage.Header.Request(_, database, requestType, requestPath, parameters, meta) =>
         val requestUrl = baseUrl.setPath(apiDatabasePrefixPath(database).addParts(requestPath.parts))
         println(s"$requestType ${requestUrl}")
-        requestHeader(meta, requestType, requestUrl.setQueryParams(parameters))
+        val headers: Headers = meta
+        requestHeader(headers ++ extraHeaders, requestType, requestUrl.setQueryParams(parameters))
 
       // support for async responses https://www.arangodb.com/docs/stable/http/async-results-management.html#managing-async-results-via-http
       case ArangoMessage.Header.Response(_, _, _, meta) =>
+        val headers: Headers = meta
         requestHeader(
-          meta,
+          headers ++ extraHeaders,
           Method.PUT,
           baseUrl.setPath(asyncResponsePath(meta.get(ArangoAsyncId).getOrElse(EmptyString)))
         )
@@ -122,8 +124,8 @@ object Extensions:
         requestWithBody(body, Map.empty, Method.POST, baseUrl.setPath(LoginPath))
 
   extension [T: JsonEncoder](arangoMessage: ArangoMessage[T])
-    def httpRequest(baseUrl: URL) =
-      val header = arangoMessage.header.emptyRequest(baseUrl)
+    def httpRequest(baseUrl: URL, extraHeaders: Headers = Headers.empty) =
+      val header = arangoMessage.header.emptyRequest(baseUrl, extraHeaders)
       header.copy(body = arangoMessage.body.jsonBody)
 
   extension (s: String | Null) def getOrEmpty: String = if s != null then s else ""
@@ -156,7 +158,11 @@ object ArangoClientJson:
   def databaseApi(databaseName: DatabaseName): JRAIO[ArangoDatabase[JsonEncoder, JsonDecoder]] =
     ArangoClient.databaseApi(databaseName)
 
-  def apply(config: ArangoConfiguration, _httpClient: Client): ArangoClientJson = new ArangoClientJson:
+  def apply(
+      config: ArangoConfiguration,
+      httpClient: Client,
+      token: Option[Token] = None
+  ): ArangoClientJson = new ArangoClientJson:
 
     import Constants.*
     import Conversions.given
@@ -165,35 +171,32 @@ object ArangoClientJson:
 
     val BaseUrl = URL(!!).setScheme(Scheme.HTTP).setHost(config.host).setPort(config.port)
 
-    // TODO review this hack, the idea is to update headers everytime we do login (which changes state)
-    private var httpClient = _httpClient
+    private val headers =
+      token.map(_.jwt).map(Headers.bearerAuthorizationHeader).getOrElse(Headers.empty)
 
     def parseJson[O: JsonDecoder](bodyString: String): IO[ArangoError, O] =
       ZIO.fromEither(bodyString.fromJson[O].leftMap(ArangoMessage.error(BadRequest.code, _)))
 
     def head(header: ArangoMessage.Header): AIO[ArangoMessage.Header] =
-      for response <- httpClient.request(header.emptyRequest(BaseUrl)).handleErrors
+      for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
       yield response
 
     def get[O: JsonDecoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]] =
       for
-        response <- httpClient.request(header.emptyRequest(BaseUrl)).handleErrors
+        response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
         body <- parseResponseBody(response)
       yield ArangoMessage(response, body)
 
     def command[I: JsonEncoder, O: JsonDecoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
       for
-        response <- httpClient.request(message.httpRequest(BaseUrl)).handleErrors
+        response <- httpClient.request(message.httpRequest(BaseUrl, headers)).handleErrors
         body <- parseResponseBody(response)
       yield ArangoMessage(response, body)
 
     def login(username: String, password: String): AIO[Token] =
       for
         token <- getBody[Token](ArangoMessage.login(username, password))
-        authHeaderName = HttpHeaderNames.AUTHORIZATION.toString
-        authHeaderValue = "Bearer " + token.jwt
       yield
-        this.httpClient = this.httpClient.header(authHeaderName, authHeaderValue)
         token
 
     private def parseResponseBody[O: JsonDecoder](response: Response): AIO[O] =
@@ -211,10 +214,14 @@ object ArangoClientJson:
   // def system: ArangoDatabase[F]
   // def db: ArangoDatabase[F]
 
+  def initArangoClient(config: ArangoConfiguration, httpClient: Client) =
+    for
+      token <- ArangoClientJson(config, httpClient).login(config.username, config.password)
+    yield ArangoClientJson(config, httpClient, Some(token))
+
   val live: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientJson] =
     ZLayer(for
       config <- ZIO.service[ArangoConfiguration]
       httpClient <- ZIO.service[Client]
-      arangoClient = ArangoClientJson(config, httpClient)
-      _ <- arangoClient.login(config.username, config.password)
+      arangoClient <- initArangoClient(config, httpClient)
     yield arangoClient)
