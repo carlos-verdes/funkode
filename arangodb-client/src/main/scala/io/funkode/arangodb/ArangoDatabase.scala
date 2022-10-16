@@ -3,7 +3,6 @@ package io.funkode.arangodb
 import io.lemonlabs.uri.UrlPath
 import io.lemonlabs.uri.typesafe.dsl.*
 import zio.*
-
 import models.*
 import protocol.*
 
@@ -11,7 +10,7 @@ trait ArangoDatabase[Encoder[_], Decoder[_]]:
 
   def name: DatabaseName
 
-  def collectionApi(name: CollectionName): ArangoCollection[Encoder, Decoder]
+  def collection(name: CollectionName): ArangoCollection[Encoder, Decoder]
 
   /*
   def document(handle: DocumentHandle): ArangoDocument[F]
@@ -46,6 +45,8 @@ trait ArangoDatabase[Encoder[_], Decoder[_]]:
 
 object ArangoDatabase:
 
+  type DAIO[Encoder[_], Decoder[_], O] = ZIO[ArangoDatabase[Encoder, Decoder], ArangoError, O]
+
   import ArangoMessage.*
 
   class Impl[Encoder[_], Decoder[_]](
@@ -55,7 +56,7 @@ object ArangoDatabase:
 
     def name = databaseName
 
-    override def collectionApi(collectionName: CollectionName): ArangoCollection[Encoder, Decoder] =
+    override def collection(collectionName: CollectionName): ArangoCollection[Encoder, Decoder] =
       new ArangoCollection.Impl[Encoder, Decoder](this.name, collectionName, arangoClient)
 
     def create(users: Vector[DatabaseCreate.User] = Vector.empty)(using
@@ -82,3 +83,29 @@ object ArangoDatabase:
           DELETE(DatabaseName.system, ApiDatabaseManagementPath.addPart(name.unwrap))
         )
         .map(_.result)
+
+  def newInstance[Enc[_]: TagK, Dec[_]: TagK](
+      databaseName: DatabaseName
+  ): RAIO[Enc, Dec, ArangoDatabase[Enc, Dec]] =
+    ZIO
+      .service[ArangoClient[Enc, Dec]]
+      .map(arangoClient => new ArangoDatabase.Impl(databaseName, arangoClient))
+
+  def default[Enc[_]: TagK, Dec[_]: TagK]
+      : ZLayer[ArangoConfiguration & ArangoClient[Enc, Dec], ArangoError, ArangoDatabase[Enc, Dec]] =
+    ZLayer(
+      for
+        config <- ZIO.service[ArangoConfiguration]
+        databaseApi <- newInstance[Enc, Dec](config.database)
+      yield databaseApi
+    )
+
+  def changeTo[Enc[_]: TagK, Dec[_]: TagK](
+      newDatabaseName: DatabaseName
+  ): RAIO[Enc, Dec, ArangoDatabase[Enc, Dec]] =
+    newInstance(newDatabaseName)
+
+  def collection[Enc[_]: TagK, Dec[_]: TagK](
+      collectionName: CollectionName
+  ): DAIO[Enc, Dec, ArangoCollection[Enc, Dec]] =
+    ZIO.service[ArangoDatabase[Enc, Dec]].map(_.collection(collectionName))

@@ -155,9 +155,6 @@ object ArangoClientJson:
   def login(username: String, password: String): JRAIO[Token] =
     ArangoClient.login(username, password)
 
-  def databaseApi(databaseName: DatabaseName): JRAIO[ArangoDatabase[JsonEncoder, JsonDecoder]] =
-    ArangoClient.databaseApi(databaseName)
-
   def apply(
       config: ArangoConfiguration,
       httpClient: Client,
@@ -206,6 +203,8 @@ object ArangoClientJson:
           then parseJson[ArangoError](bodyString).flatMap(r => ZIO.fail(r))
           else parseJson(bodyString)
       yield body
+
+    def currentDatabase: DatabaseName = (config.database)
 
   // def server: ArangoServer[F]
   // def database(name: DatabaseName): ArangoDatabase[F]

@@ -24,19 +24,20 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
         for serverInfo <- ArangoServerJson.version()
         yield assertTrue(serverInfo == ServerVersion("arango", "community", "3.7.15"))
       },
-      test("Create a database") {
+      test("Create and drop a database") {
         for
-          databaseApi <- ArangoDatabaseJson(testDatabaseName)
-          result <- databaseApi.create()
+          databaseApi <- ArangoDatabaseJson.changeTo(testDatabaseName)
+          createResult <- databaseApi.create()
           dataInfo <- databaseApi.info
-        yield assertTrue(result) &&
+          deleteResult <- databaseApi.drop
+        yield assertTrue(createResult) &&
           assertTrue(dataInfo.name == testDatabase.name) &&
-          assertTrue(!dataInfo.isSystem)
+          assertTrue(!dataInfo.isSystem) &&
+          assertTrue(deleteResult)
       },
-      test("Create a collection") {
+      test("Create a collection (default database)") {
         for
-          databaseApi <- ArangoDatabaseJson(testDatabaseName)
-          collection = databaseApi.collectionApi(petsCollection)
+          collection <- ArangoDatabaseJson.collection(petsCollection)
           createdCollection <- collection.create()
           collectionInfo <- collection.info
           collectionChecksum <- collection.checksum()
@@ -54,23 +55,18 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
       test("Delete documents") {
         assertTrue(true)
       },
-      test("Drop a collection") {
+      test("Drop a collection (default database)") {
         for
-          databaseApi <- ArangoDatabaseJson(testDatabaseName)
-          collection = databaseApi.collectionApi(petsCollection)
+          collection <- ArangoDatabaseJson.collection(petsCollection)
           collectionInfo <- collection.info
           deleteResult <- collection.drop()
         yield assertTrue(deleteResult.id == collectionInfo.id)
-      },
-      test("Drop a database") {
-        for
-          databaseApi <- ArangoClientJson.databaseApi(testDatabaseName)
-          result <- databaseApi.drop
-        yield assertTrue(result)
       }
     ).provideShared(
       Scope.default,
       ArangoConfiguration.default,
       Client.default,
-      ArangodbContainer.life
+      ArangodbContainer.life,
+      ArangoServerJson.life,
+      ArangoDatabaseJson.life
     ) @@ TestAspect.sequential

@@ -26,7 +26,7 @@ object Main extends ZIOAppDefault:
       serverInfo <- ArangoServerJson.version(false)
       _ <- printLine(s"""Server info: $serverInfo""")
       _ <- printLine(s"""Creating test2 database""")
-      databaseApi <- ArangoClientJson.databaseApi(DatabaseName("test2"))
+      databaseApi <- ArangoDatabaseJson.changeTo(DatabaseName("test2"))
       dbCreated <- databaseApi.create()
       _ <- printLine(s"""Database created? $dbCreated""")
       databaseInfo <- databaseApi.info
@@ -38,4 +38,10 @@ object Main extends ZIOAppDefault:
       _ <- readLine
     yield ()
 
-  def run = app.provide(ArangoConfiguration.default, ArangodbContainer.life, Client.default, Scope.default)
+  def run = app.provide(
+    ArangoConfiguration.default,
+    ArangodbContainer.life,
+    ArangoServerJson.life,
+    Client.default,
+    Scope.default
+  )

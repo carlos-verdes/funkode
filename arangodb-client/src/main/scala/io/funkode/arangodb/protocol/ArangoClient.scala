@@ -20,10 +20,6 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
   def commandBody[I: Encoder, O: Decoder](message: ArangoMessage[I]): AIO[O] =
     command(message).map(_.body)
 
-  val server: ArangoServer[Decoder] = new ArangoServer.Impl(thisArango)
-
-  def database(name: DatabaseName): ArangoDatabase[Encoder, Decoder] =
-    new ArangoDatabase.Impl(name, thisArango)
 //  def login(token: String): AIO[ArangoMessage.Result]
 
 //def database(name: DatabaseName): ArangoDatabase[F]
@@ -54,8 +50,3 @@ object ArangoClient:
       password: String
   ): RAIO[Encoder, Decoder, Token] =
     ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](_.login(username, password))
-
-  def databaseApi[Encoder[_]: TagK, Decoder[_]: TagK](
-      databaseName: DatabaseName
-  ): URIO[ArangoClient[Encoder, Decoder], ArangoDatabase[Encoder, Decoder]] =
-    ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](c => ZIO.succeed(c.database(databaseName)))

@@ -1,10 +1,13 @@
 package io.funkode.arangodb
 
+import io.funkode.arangodb
 import models.*
 import protocol.*
+import zio.*
 
 trait ArangoCollection[Encoder[_], Decoder[_]]:
 
+  def database: DatabaseName
   def name: CollectionName
 
   /*
@@ -48,11 +51,12 @@ object ArangoCollection:
   import ArangoMessage.*
 
   class Impl[Encoder[_], Decoder[_]](
-      database: DatabaseName,
+      databaseName: DatabaseName,
       collectionName: CollectionName,
       arangoClient: ArangoClient[Encoder, Decoder]
   ) extends ArangoCollection[Encoder, Decoder]:
 
+    def database: DatabaseName = databaseName
     def name = collectionName
 
     val path = ApiCollectionPath.addPart(name.unwrap)
