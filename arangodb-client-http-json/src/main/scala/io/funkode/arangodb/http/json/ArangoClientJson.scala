@@ -166,7 +166,7 @@ object ArangoClientJson:
     import Extensions.*
     import codecs.given
 
-    val BaseUrl = URL(!!).setScheme(Scheme.HTTP).setHost(config.host).setPort(config.port)
+    private val BaseUrl = URL(!!).setScheme(Scheme.HTTP).setHost(config.host).setPort(config.port)
 
     private val headers =
       token.map(_.jwt).map(Headers.bearerAuthorizationHeader).getOrElse(Headers.empty)
