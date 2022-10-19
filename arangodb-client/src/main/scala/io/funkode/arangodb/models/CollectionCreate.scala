@@ -11,7 +11,7 @@ final case class CollectionCreate(
     keyOptions: Option[CollectionCreate.KeyOptions] = None,
     numberOfShards: Long = 1,
     replicationFactor: Long = 1,
-    shardKeys: List[String] = List(DocumentKey.key),
+    shardKeys: List[String] = List(DocumentKey.Key),
     shardingStrategy: Option[String] = None,
     smartJoinAttribute: Option[String] = None,
     `type`: CollectionType = CollectionType.Document,

@@ -22,12 +22,12 @@ object OpaqueTypesSpec extends ZIOSpecDefault with ModelExamples:
   override def spec: Spec[TestEnvironment, Any] =
     suite("Opaque types should")(
       test("Parse DocumentHandle from a uri string") {
-        assertTrue(DocumentHandle.parse(documentUri) == Some(documentHandle))  &&
-          assertTrue(DocumentHandle.parse("wrong/uri/handle").isEmpty)
+        assertTrue(DocumentHandle.parse(documentUri) == Some(documentHandle)) &&
+        assertTrue(DocumentHandle.parse("wrong/uri/handle").isEmpty)
       },
       test("Provide a uri string as representation of DocumentHandle") {
         assertTrue(documentHandle.unwrap == documentUri) &&
-          assertTrue(documentHandle.collection == col) &&
-          assertTrue(documentHandle.key == key)
+        assertTrue(documentHandle.collection == col) &&
+        assertTrue(documentHandle.key == key)
       }
     )

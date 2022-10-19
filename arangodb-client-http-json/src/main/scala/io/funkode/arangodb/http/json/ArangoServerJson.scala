@@ -21,5 +21,5 @@ object ArangoServerJson:
   val life: ZLayer[ArangoClientJson, ArangoError, ArangoServerJson] =
     ZLayer(
       for arangoClient <- ZIO.service[ArangoClientJson]
-      yield new ArangoServer.Impl[JsonEncoder, JsonDecoder](arangoClient)
+      yield new ArangoServer.Impl[JsonEncoder, JsonDecoder](using arangoClient)
     )

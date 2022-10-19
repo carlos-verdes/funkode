@@ -22,7 +22,7 @@ object CollectionName:
 
 object DocumentHandle:
 
-  val key = "_key"
+  val Key = "_key"
 
   def apply(col: CollectionName, key: DocumentKey): DocumentHandle = (col, key)
 
@@ -31,19 +31,18 @@ object DocumentHandle:
       case Array(collection, key) => Some(apply(CollectionName(collection), DocumentKey(key)))
       case _                      => None
 
-  extension (handle: DocumentHandle) def collection: CollectionName = handle._1
-  extension (handle: DocumentHandle) def key: DocumentKey = handle._2
   extension (handle: DocumentHandle)
+    def collection: CollectionName = handle._1
+    def key: DocumentKey = handle._2
+    def isEmpty: Boolean = handle._1.isEmpty && handle._2.isEmpty
     def unwrap: String =
       val col: CollectionName = CollectionName(handle._1).unwrap
       val key: DocumentKey = DocumentKey(handle._2).unwrap
       s"${col}/${key}"
 
-  extension (handle: DocumentHandle) def isEmpty: Boolean = handle._1.isEmpty && handle._2.isEmpty
-
 object DocumentKey:
 
-  val key = "_key"
+  val Key = "_key"
 
   def apply(key: String): DocumentKey = key
 
@@ -64,7 +63,7 @@ object DatabaseName:
 
 object DocumentRevision:
 
-  val key: String = "_rev"
+  val Key: String = "_rev"
 
   def apply(value: String): DocumentRevision = value
   extension (value: DocumentRevision) def unwrap: String = value
