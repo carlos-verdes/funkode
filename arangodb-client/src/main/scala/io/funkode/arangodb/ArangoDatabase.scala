@@ -49,47 +49,33 @@ object ArangoDatabase:
 
   import ArangoMessage.*
 
-  class Impl[Encoder[_], Decoder[_]](
-      databaseName: DatabaseName,
+  class Impl[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
       arangoClient: ArangoClient[Encoder, Decoder]
   ) extends ArangoDatabase[Encoder, Decoder]:
 
     def name = databaseName
 
     override def collection(collectionName: CollectionName): ArangoCollection[Encoder, Decoder] =
-      new ArangoCollection.Impl[Encoder, Decoder](this.name, collectionName, arangoClient)
+      new ArangoCollection.Impl[Encoder, Decoder](this.name, collectionName)(using arangoClient)
 
     def create(users: Vector[DatabaseCreate.User] = Vector.empty)(using
         Encoder[DatabaseCreate],
         Decoder[ArangoResult[Boolean]]
     ): AIO[Boolean] =
-      val databaseCreate = DatabaseCreate(name, users)
-      arangoClient
-        .commandBody[DatabaseCreate, ArangoResult[Boolean]](
-          POST(DatabaseName.system, ApiDatabaseManagementPath).withBody(databaseCreate)
-        )
-        .map(_.result)
+      POST(DatabaseName.system, ApiDatabase).withBody(DatabaseCreate(name, users)).executeIgnoreResult
 
     def info(using Decoder[ArangoResult[DatabaseInfo]]): AIO[DatabaseInfo] =
-      arangoClient
-        .getBody[ArangoResult[DatabaseInfo]](
-          GET(name, ApiDatabaseManagementPath.addPart("current"))
-        )
-        .map(_.result)
+      GET(name, ApiDatabase.addPart("current")).executeIgnoreResult
 
     def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean] =
-      arangoClient
-        .getBody[ArangoResult[Boolean]](
-          DELETE(DatabaseName.system, ApiDatabaseManagementPath.addPart(name.unwrap))
-        )
-        .map(_.result)
+      DELETE(DatabaseName.system, ApiDatabase.addPart(name.unwrap)).executeIgnoreResult
 
   def newInstance[Enc[_]: TagK, Dec[_]: TagK](
       databaseName: DatabaseName
   ): RAIO[Enc, Dec, ArangoDatabase[Enc, Dec]] =
     ZIO
       .service[ArangoClient[Enc, Dec]]
-      .map(arangoClient => new ArangoDatabase.Impl(databaseName, arangoClient))
+      .map(arangoClient => new ArangoDatabase.Impl(databaseName)(using arangoClient))
 
   def default[Enc[_]: TagK, Dec[_]: TagK]
       : ZLayer[ArangoConfiguration & ArangoClient[Enc, Dec], ArangoError, ArangoDatabase[Enc, Dec]] =

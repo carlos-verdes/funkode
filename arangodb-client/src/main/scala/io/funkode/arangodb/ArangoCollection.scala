@@ -10,6 +10,8 @@ trait ArangoCollection[Encoder[_], Decoder[_]]:
   def database: DatabaseName
   def name: CollectionName
 
+  def documents: ArangoDocuments[Encoder, Decoder]
+
   /*
   def documents: ArangoDocuments[F]
 
@@ -50,14 +52,15 @@ object ArangoCollection:
 
   import ArangoMessage.*
 
-  class Impl[Encoder[_], Decoder[_]](
-      databaseName: DatabaseName,
-      collectionName: CollectionName,
+  class Impl[Encoder[_], Decoder[_]](databaseName: DatabaseName, collectionName: CollectionName)(using
       arangoClient: ArangoClient[Encoder, Decoder]
   ) extends ArangoCollection[Encoder, Decoder]:
 
     def database: DatabaseName = databaseName
     def name = collectionName
+
+    def documents =
+      new ArangoDocuments.Impl[Encoder, Decoder](databaseName, collectionName)(using arangoClient)
 
     val path = ApiCollectionPath.addPart(name.unwrap)
 
@@ -66,26 +69,22 @@ object ArangoCollection:
         Decoder[CollectionInfo]
     ): AIO[CollectionInfo] =
       val options = setup(CollectionCreate(name))
-      arangoClient.commandBody[CollectionCreate, CollectionInfo](
-        POST(database, ApiCollectionPath, options.parameters).withBody(options)
-      )
+      POST(database, ApiCollectionPath, options.parameters).withBody(options).execute
 
     def checksum(withRevisions: Boolean = false, withData: Boolean = false)(using
         Decoder[CollectionChecksum]
     ): AIO[CollectionChecksum] =
-      arangoClient.getBody[CollectionChecksum](
-        GET(
-          database,
-          path.addPart("checksum"),
-          Map(
-            "withRevisions" -> withRevisions.toString,
-            "withData" -> withData.toString
-          )
+      GET(
+        database,
+        path.addPart("checksum"),
+        Map(
+          "withRevisions" -> withRevisions.toString,
+          "withData" -> withData.toString
         )
-      )
+      ).execute
 
     def info(using D: Decoder[CollectionInfo]): AIO[CollectionInfo] =
-      arangoClient.getBody[CollectionInfo](GET(database, path))
+      GET(database, path).execute
 
     def drop(isSystem: Boolean = false)(using D: Decoder[DeleteResult]): AIO[DeleteResult] =
-      arangoClient.getBody(DELETE(database, path))
+      DELETE(database, path).execute

@@ -28,11 +28,9 @@ object ArangoServer:
 
   val Details = "details"
 
-  class Impl[Encoder[_], Decoder[_]](
+  class Impl[Encoder[_], Decoder[_]](using
       arangoClient: ArangoClient[Encoder, Decoder]
   ) extends ArangoServer[Decoder]:
 
     def version(details: Boolean = false)(using D: Decoder[ServerVersion]): AIO[ServerVersion] =
-      arangoClient.getBody[ServerVersion](
-        GET(DatabaseName.system, ApiVersionPath, parameters = Map(Details -> details.toString))
-      )
+      GET(DatabaseName.system, ApiVersionPath, parameters = Map(Details -> details.toString)).execute

@@ -39,6 +39,38 @@ object ArangoMessage:
 
   extension [O](header: Header) def withBody(o: O): ArangoMessage[O] = ArangoMessage(header, o)
 
+  extension (header: Header)
+    def execute[O, Encoder[_], Decoder[_]](using
+        arangoClient: ArangoClient[Encoder, Decoder],
+        D: Decoder[O]
+    ): AIO[O] =
+      arangoClient.getBody[O](header)
+
+    def executeIgnoreResult[Encoder[_], Decoder[_], O](using
+        arangoClient: ArangoClient[Encoder, Decoder],
+        D: Decoder[ArangoResult[O]]
+    ): AIO[O] =
+      execute[ArangoResult[O], Encoder, Decoder].map(_.result)
+
+  extension [I](arangoMessage: ArangoMessage[I])
+    def execute[O, Encoder[_], Decoder[_]](using
+        arangoClient: ArangoClient[Encoder, Decoder],
+        E: Encoder[I],
+        D: Decoder[O]
+    ): AIO[O] = arangoClient.commandBody[I, O](arangoMessage)
+
+    def executeIgnoreResult[O, Encoder[_], Decoder[_]](using
+        arangoClient: ArangoClient[Encoder, Decoder],
+        E: Encoder[I],
+        D: Decoder[ArangoResult[O]]
+    ): AIO[O] = execute[ArangoResult[O], Encoder, Decoder].map(_.result)
+
+  extension (params: Map[String, Option[String]])
+    def collectDefined: Map[String, String] =
+      params.collect { case (key, Some(value)) =>
+        key -> value
+      }
+
   def DELETE(
       database: DatabaseName,
       request: UrlPath,
