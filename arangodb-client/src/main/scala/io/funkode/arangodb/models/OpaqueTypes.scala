@@ -1,5 +1,6 @@
 package io.funkode.arangodb.models
 
+import io.lemonlabs.uri.UrlPath
 import zio.config.ConfigDescriptor.string
 import zio.config.magnolia.Descriptor
 
@@ -35,6 +36,10 @@ object DocumentHandle:
     def collection: CollectionName = handle._1
     def key: DocumentKey = handle._2
     def isEmpty: Boolean = handle._1.isEmpty && handle._2.isEmpty
+    def path: UrlPath =
+      val col: CollectionName = CollectionName(handle._1).unwrap
+      val key: DocumentKey = DocumentKey(handle._2).unwrap
+      UrlPath.empty.addPart(col).addPart(key)
     def unwrap: String =
       val col: CollectionName = CollectionName(handle._1).unwrap
       val key: DocumentKey = DocumentKey(handle._2).unwrap

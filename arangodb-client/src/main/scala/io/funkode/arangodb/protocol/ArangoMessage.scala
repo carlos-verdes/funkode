@@ -40,6 +40,11 @@ object ArangoMessage:
   extension [O](header: Header) def withBody(o: O): ArangoMessage[O] = ArangoMessage(header, o)
 
   extension (header: Header)
+    def head[Encoder[_], Decoder[_]](using
+        arangoClient: ArangoClient[Encoder, Decoder]
+    ): AIO[ArangoMessage.Header] =
+      arangoClient.head(header)
+
     def execute[O, Encoder[_], Decoder[_]](using
         arangoClient: ArangoClient[Encoder, Decoder],
         D: Decoder[O]
