@@ -12,11 +12,8 @@ trait ArangoCollection[Encoder[_], Decoder[_]]:
 
   def documents: ArangoDocuments[Encoder, Decoder]
 
+  def document(key: DocumentKey): ArangoDocument[Encoder, Decoder]
   /*
-  def documents: ArangoDocuments[F]
-
-  def document(key: DocumentKey): ArangoDocument[F]
-
   def indexes: ArangoIndexes[F]
 
   def index(id: String): ArangoIndex[F]
@@ -59,8 +56,13 @@ object ArangoCollection:
     def database: DatabaseName = databaseName
     def name = collectionName
 
-    def documents =
+    val documents =
       new ArangoDocuments.Impl[Encoder, Decoder](databaseName, collectionName)(using arangoClient)
+
+    def document(documentKey: DocumentKey) =
+      new ArangoDocument.Impl[Encoder, Decoder](databaseName, DocumentHandle(this.name, documentKey))(
+        using arangoClient
+      )
 
     val path = ApiCollectionPath.addPart(name.unwrap)
 

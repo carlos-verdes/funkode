@@ -104,7 +104,7 @@ object Extensions:
     def emptyRequest(baseUrl: URL, extraHeaders: Headers = Headers.empty) = header match
       case ArangoMessage.Header.Request(_, database, requestType, requestPath, parameters, meta) =>
         val requestUrl = baseUrl.setPath(apiDatabasePrefixPath(database).addParts(requestPath.parts))
-        println(s"$requestType ${requestUrl}")
+        // println(s"$requestType ${requestUrl}")
         val headers: Headers = meta
         requestHeader(headers ++ extraHeaders, requestType, requestUrl.setQueryParams(parameters))
 
@@ -197,7 +197,7 @@ object ArangoClientJson:
     private def parseResponseBody[O: JsonDecoder](response: Response): AIO[O] =
       for
         bodyString <- response.body.asString.handleErrors
-        _ <- ZIO.succeed(println(s"Parsing response body: \n$bodyString"))
+        // _ <- ZIO.succeed(println(s"Parsing response body: \n$bodyString"))
         body <-
           if response.status.isError
           then parseJson[ArangoError](bodyString).flatMap(r => ZIO.fail(r))
