@@ -32,15 +32,26 @@ lazy val commonDependencies = Seq(scalaUri, logBack, zioPrelude, jansi, zioConfM
 lazy val zioDependencies = Seq(zio, zioHttp, zioJson, zioConcurrent, zioConfMagnolia, zioConfTypesafe)
 lazy val testDependencies = Seq(tapirSttpStubServer, zioTest, zioTestSbt, sttpClient, zioJGolden).map(_ % "it, test")
 
+lazy val velocypack =
+  project
+    .in(file("velocypack"))
+    .configs(IntegrationTest)
+    .settings(Defaults.itSettings)
+    .settings(Seq(
+      name := "funkode-velocypack",
+      libraryDependencies ++= commonDependencies ++ Seq(scodecCore) ++ zioDependencies ++ testDependencies,
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
+
 lazy val arangodb =
   project
     .in(file("arangodb-client"))
     .configs(IntegrationTest)
     .settings(Defaults.itSettings)
     .settings(Seq(
-      name := "arangodb-client",
+      name := "funkode-arangodb",
       libraryDependencies ++= commonDependencies ++ zioDependencies ++ testDependencies,
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
+    .dependsOn(velocypack)
 
 lazy val arangodbHttpJson =
   project
@@ -48,7 +59,7 @@ lazy val arangodbHttpJson =
     .configs(IntegrationTest)
     .settings(Defaults.itSettings)
     .settings(Seq(
-      name := "arangodb-client-http-json",
+      name := "funkode-arangodb-http-json",
       libraryDependencies ++= commonDependencies ++ zioDependencies ++ testDependencies),
       testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"))
     .dependsOn(arangodb)
