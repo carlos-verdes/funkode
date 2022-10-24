@@ -13,6 +13,7 @@ trait ArangoExamples:
 
   import codecs.given
 
+  case class Country(flag: String, name: String) derives JsonCodec
   case class Pet(name: String, age: Int) derives JsonCodec
   case class PatchAge(_key: DocumentKey, age: Int) derives JsonCodec
   case class PetWithKey(_key: DocumentKey, name: String, age: Int) derives JsonCodec
@@ -36,6 +37,9 @@ trait ArangoExamples:
   def patchPet(_key: DocumentKey) = PatchAge(_key, 5)
   val updatedPet2 = pet2.copy(age = 5)
   val morePets = List(pet3, pet4)
+
+  val firstCountries = Vector(Country("🇦🇩", "Andorra"), Country("🇦🇪", "United Arab Emirates"))
+  val secondCountries = Vector(Country("🇦🇫", "Afghanistan"), Country("🇦🇬", "Antigua and Barbuda"))
 
 object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
 
@@ -136,7 +140,23 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(countAfterDelete.count == 0L)
       },
       test("Query documents") {
-        assertTrue(true)
+        for
+          databaseApi <- ArangoDatabaseJson.changeTo(DatabaseName("test"))
+          queryCountries =
+            databaseApi
+              .query(Query("FOR c IN countries SORT c RETURN c"))
+              .count(true)
+              .batchSize(2)
+          cursor <- queryCountries.cursor[Country]
+          firstResults = cursor.body
+          more <- cursor.next()
+          secondResults = more.body
+        yield assertTrue(firstResults.count.get > 2L) &&
+          assertTrue(firstResults.result == firstCountries) &&
+          assertTrue(firstResults.hasMore) &&
+          assertTrue(secondResults.count.get > 2L) &&
+          assertTrue(secondResults.result == secondCountries) &&
+          assertTrue(secondResults.hasMore)
       },
       test("Delete documents") {
         assertTrue(true)
