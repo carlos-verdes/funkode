@@ -35,13 +35,13 @@ trait ArangoDatabase[Encoder[_], Decoder[_]]:
 
   /*
   def collections(excludeSystem: Boolean = false): F[ArangoResponse[Vector[CollectionInfo]]]
-
-  def query[V: VPackEncoder](query: Query[V]): ArangoQuery[F, V]
-
+   */
+  def query(query: Query): ArangoQuery[Encoder, Decoder]
+/*
   def query[V: VPackEncoder](qs: String, bindVars: V): ArangoQuery[F, V] = self.query(Query(qs, bindVars))
 
   def query(qs: String): ArangoQuery[F, VObject] = self.query(qs, VObject.empty)
-   */
+ */
 
 object ArangoDatabase:
 
@@ -69,6 +69,9 @@ object ArangoDatabase:
 
     def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean] =
       DELETE(DatabaseName.system, ApiDatabase.addPart(name.unwrap)).executeIgnoreResult
+
+    def query(query: Query): ArangoQuery[Encoder, Decoder] =
+      new ArangoQuery.Impl(name, query)
 
   def newInstance[Enc[_]: TagK, Dec[_]: TagK](
       databaseName: DatabaseName

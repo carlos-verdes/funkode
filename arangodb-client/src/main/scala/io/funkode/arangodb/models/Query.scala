@@ -7,7 +7,7 @@ import io.funkode.velocypack.*
 
 case class Query(
     query: String,
-    bindVars: VPack,
+    bindVars: Option[VPack],
     batchSize: Option[Long] = None,
     cache: Option[Boolean] = None,
     count: Option[Boolean] = None,
@@ -18,7 +18,7 @@ case class Query(
 
 object Query:
 
-  def apply(query: String): Query = Query(query, VObject.empty)
+  def apply(query: String): Query = new Query(query, None)
 
   final case class Options(
       failOnWarning: Option[Boolean],

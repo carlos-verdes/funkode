@@ -62,7 +62,8 @@ object ArangoMessage:
         arangoClient: ArangoClient[Encoder, Decoder],
         E: Encoder[I],
         D: Decoder[O]
-    ): AIO[O] = arangoClient.commandBody[I, O](arangoMessage)
+    ): AIO[O] =
+      arangoClient.commandBody[I, O](arangoMessage)
 
     def executeIgnoreResult[O, Encoder[_], Decoder[_]](using
         arangoClient: ArangoClient[Encoder, Decoder],

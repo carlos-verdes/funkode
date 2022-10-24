@@ -7,4 +7,4 @@ package object json:
 
   type JRAIO[O] = RAIO[JsonEncoder, JsonDecoder, O]
 
-  object codecs extends ModelCodecs
+  object codecs extends Codecs
