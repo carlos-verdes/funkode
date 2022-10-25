@@ -3,6 +3,7 @@ package http
 package json
 
 import zio.json.*
+import zio.json.ast.*
 import zio.test.*
 import zio.test.Assertion.*
 
@@ -27,6 +28,9 @@ trait ModelExamples:
       |}
       |""".stripMargin
 
+  val databaseName: DatabaseName = DatabaseName("database1")
+  val expectedDatabaseJson: String = "\"database1\""
+
 object ModelCodecsSpec extends ZIOSpecDefault with ModelExamples:
 
   import models.*
@@ -42,5 +46,9 @@ object ModelCodecsSpec extends ZIOSpecDefault with ModelExamples:
       },
       test("decode server info with details") {
         assertDecode(serverInfoWithDetailsJson, serverInfoWithDetails)
+      },
+      test("encode/decode opaque types like DatabaseName") {
+        assertDecode(expectedDatabaseJson, databaseName) &&
+        assertTrue(databaseName.toJson == expectedDatabaseJson)
       }
     )
