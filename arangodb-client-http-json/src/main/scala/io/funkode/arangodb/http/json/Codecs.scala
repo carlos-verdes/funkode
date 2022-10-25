@@ -36,22 +36,22 @@ trait Codecs:
   given JsonCodec[UserPassword] = DeriveJsonCodec.gen[UserPassword]
 
   // opaque string based types
-  given JsonCodec[DatabaseName] = DeriveOpaqueTypeCodec.gen(DatabaseName.unwrap, DatabaseName.apply)
-  given JsonCodec[CollectionName] = DeriveOpaqueTypeCodec.gen(CollectionName.unwrap, CollectionName.apply)
-  given JsonCodec[DocumentKey] = DeriveOpaqueTypeCodec.gen(DocumentKey.unwrap, DocumentKey.apply)
+  given JsonCodec[DatabaseName] = DeriveOpaqueTypeCodec.gen(DatabaseName.apply, DatabaseName.unwrap)
+  given JsonCodec[CollectionName] = DeriveOpaqueTypeCodec.gen(CollectionName.apply, CollectionName.unwrap)
+  given JsonCodec[DocumentKey] = DeriveOpaqueTypeCodec.gen(DocumentKey.apply, DocumentKey.unwrap)
   given JsonCodec[DocumentRevision] =
-    DeriveOpaqueTypeCodec.gen(DocumentRevision.unwrap, DocumentRevision.apply)
-  given JsonCodec[TransactionId] = DeriveOpaqueTypeCodec.gen(TransactionId.unwrap, TransactionId.apply)
+    DeriveOpaqueTypeCodec.gen(DocumentRevision.apply, DocumentRevision.unwrap)
+  given JsonCodec[TransactionId] = DeriveOpaqueTypeCodec.gen(TransactionId.apply, TransactionId.unwrap)
 
   // enum based types
   given JsonCodec[CollectionType] =
-    DeriveEnumCodec.gen(CollectionType.ordinal, CollectionType.fromOrdinal)
+    DeriveOpaqueTypeCodec.gen(CollectionType.fromOrdinal, CollectionType.ordinal)
   given JsonCodec[CollectionStatus] =
-    DeriveEnumCodec.gen(CollectionStatus.ordinal, CollectionStatus.fromOrdinal)
+    DeriveOpaqueTypeCodec.gen(CollectionStatus.fromOrdinal, CollectionStatus.ordinal)
 
   // special types
   given JsonCodec[DocumentHandle] =
-    DeriveOpaqueTypeCodec.gen(DocumentHandle.unwrap, (s) => DocumentHandle.parse(s).get)
+    DeriveOpaqueTypeCodec.gen((s: String) => DocumentHandle.parse(s).get, DocumentHandle.unwrap)
 
   given JsonEncoder[VPack] = new JsonEncoder[VPack]:
     override def unsafeEncode(vpack: VPack, indent: Option[Int], out: Write): Unit =

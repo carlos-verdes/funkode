@@ -7,15 +7,15 @@ import zio.json.internal.*
 
 object DeriveOpaqueTypeCodec:
 
-  inline def gen[T](inline unwrap: T => String, inline create: String => T): zio.json.JsonCodec[T] =
-    ${ createOpaqueCodec('create, 'unwrap) }
+  inline def gen[T, S](inline create: S => T, inline unwrap: T => S)(using
+      JsonCodec[S]
+  ): zio.json.JsonCodec[T] =
+    createOpaqueCodec(create, unwrap)
 
-  def createOpaqueCodec[T](create: Expr[String => T], unwrap: Expr[T => String])(using
-      t: Type[T]
-  )(using Quotes) =
-    '{
-      val encoder = JsonEncoder[String].contramap($unwrap)
-      val decoder = JsonDecoder[String].map($create)
+  def createOpaqueCodec[T, S](create: S => T, unwrap: T => S)(using
+      JsonCodec[S]
+  ) =
+    val encoder = JsonEncoder[S].contramap(unwrap)
+    val decoder = JsonDecoder[S].map(create)
 
-      JsonCodec(encoder, decoder)
-    }
+    JsonCodec(encoder, decoder)
