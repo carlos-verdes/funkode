@@ -4,6 +4,10 @@ import io.lemonlabs.uri.UrlPath
 import zio.config.ConfigDescriptor.string
 import zio.config.magnolia.Descriptor
 
+trait StringOpaqueType[T]:
+  def apply(x: String): T
+  extension (name: T) def unwrap: String
+
 opaque type CollectionName = String
 opaque type DocumentKey = String
 opaque type DocumentHandle = (CollectionName, DocumentKey)
@@ -11,7 +15,7 @@ opaque type DocumentRevision = String
 opaque type DatabaseName = String
 opaque type TransactionId = String
 
-object CollectionName:
+object CollectionName extends StringOpaqueType[CollectionName]:
 
   def apply(name: String): CollectionName = name
   extension (name: CollectionName) def unwrap: String = name

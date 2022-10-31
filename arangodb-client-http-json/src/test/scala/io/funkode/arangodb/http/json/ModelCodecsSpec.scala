@@ -7,6 +7,14 @@ import zio.json.ast.*
 import zio.test.*
 import zio.test.Assertion.*
 
+opaque type SomeStringType = String
+
+object SomeStringType:
+
+  def apply(s: String): SomeStringType = s
+
+  extension (t: SomeStringType) def show: String = t
+
 trait ModelExamples:
 
   import models.*
@@ -48,6 +56,9 @@ object ModelCodecsSpec extends ZIOSpecDefault with ModelExamples:
         assertDecode(serverInfoWithDetailsJson, serverInfoWithDetails)
       },
       test("encode/decode opaque types like DatabaseName") {
+        val inspected = DeriveOpaqueTypeCodec.inspectType[SomeStringType]
+        println(s"from macro: $inspected")
+
         assertDecode(expectedDatabaseJson, databaseName) &&
         assertTrue(databaseName.toJson == expectedDatabaseJson)
       }
