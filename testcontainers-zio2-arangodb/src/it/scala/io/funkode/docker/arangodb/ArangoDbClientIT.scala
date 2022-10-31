@@ -7,6 +7,7 @@ import io.funkode.arangodb.protocol.ArangoMessage.Header
 import zio.*
 import zio.http.Client
 import zio.json.*
+import zio.stream.*
 import zio.test.{assert, *}
 
 trait ArangoExamples:
@@ -139,7 +140,7 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(deletedDoc._key == petWithKey._key) &&
           assertTrue(countAfterDelete.count == 0L)
       },
-      test("Query documents") {
+      test("Query documents with cursor") {
         for
           databaseApi <- ArangoDatabaseJson.changeTo(DatabaseName("test"))
           queryCountries =
@@ -149,14 +150,18 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
               .batchSize(2)
           cursor <- queryCountries.cursor[Country]
           firstResults = cursor.body
-          more <- cursor.next()
+          more <- cursor.next
           secondResults = more.body
+          firstStreamResults <- queryCountries.stream[Country].run(ZSink.take(4))
+          streamResultsCount <- queryCountries.stream[Country].run(ZSink.count)
         yield assertTrue(firstResults.count.get > 2L) &&
           assertTrue(firstResults.result == firstCountries) &&
           assertTrue(firstResults.hasMore) &&
           assertTrue(secondResults.count.get > 2L) &&
           assertTrue(secondResults.result == secondCountries) &&
-          assertTrue(secondResults.hasMore)
+          assertTrue(secondResults.hasMore) &&
+          assertTrue(firstStreamResults.toVector == (firstCountries ++ secondCountries)) &&
+          assertTrue(streamResultsCount == 250L)
       },
       test("Delete documents") {
         assertTrue(true)

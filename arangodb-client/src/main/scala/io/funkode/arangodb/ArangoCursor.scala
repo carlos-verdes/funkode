@@ -9,8 +9,8 @@ import models.*
 trait ArangoCursor[Decoder[_], T]:
   // def header: ArangoMessage.Header
   def body: Cursor[T]
-  def next(): AIO[ArangoCursor[Decoder, T]]
-  def delete(): AIO[DeleteResult]
+  def next(using Decoder[Cursor[T]]): AIO[ArangoCursor[Decoder, T]]
+  def delete(using Decoder[DeleteResult]): AIO[DeleteResult]
 
 object ArangoCursor:
 
@@ -21,15 +21,13 @@ object ArangoCursor:
       cursor: Cursor[T],
       options: ArangoQuery.Options
   )(using
-      ArangoClient[Encoder, Decoder],
-      Decoder[Cursor[T]],
-      Decoder[DeleteResult]
+      ArangoClient[Encoder, Decoder]
   ): ArangoCursor[Decoder, T] = new ArangoCursor[Decoder, T]:
     // def header: ArangoMessage.Header
 
     def body: Cursor[T] = cursor
 
-    def next(): AIO[ArangoCursor[Decoder, T]] =
+    def next(using Decoder[Cursor[T]]): AIO[ArangoCursor[Decoder, T]] =
       val op = PUT(
         database,
         ApiCursorPath.addPart(body.id.get),
@@ -42,7 +40,7 @@ object ArangoCursor:
         .execute[Cursor[T], Encoder, Decoder]
         .map(cursor => apply(database, cursor, options))
 
-    def delete(): AIO[DeleteResult] =
+    def delete(using Decoder[DeleteResult]): AIO[DeleteResult] =
       DELETE(
         database,
         ApiCursorPath.addPart(body.id.get),
