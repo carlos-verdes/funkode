@@ -5,6 +5,8 @@ package io.funkode.arangodb
 
 import models.*
 import protocol.*
+import zio.*
+import zio.stream.*
 
 trait ArangoQuery[Encoder[_], Decoder[_]]:
 
@@ -20,11 +22,10 @@ trait ArangoQuery[Encoder[_], Decoder[_]]:
 
   def cursor[T](using
       Encoder[Query],
-      Decoder[Cursor[T]],
-      Decoder[DeleteResult]
+      Decoder[Cursor[T]]
   ): AIO[ArangoCursor[Decoder, T]]
 
-  // def stream[F[_], T: Decoder](implicit S: ArangoStream[F, Decoder]): S.S[F, T]
+  def stream[T: Decoder](using Encoder[Query], Decoder[Cursor[T]]): ZStream[Any, ArangoError, T]
 
 object ArangoQuery:
 
@@ -62,9 +63,19 @@ object ArangoQuery:
 
     def cursor[T](using
         Encoder[Query],
-        Decoder[Cursor[T]],
-        Decoder[DeleteResult]
+        Decoder[Cursor[T]]
     ): AIO[ArangoCursor[Decoder, T]] =
       execute.map { resp =>
         ArangoCursor.apply[Encoder, Decoder, T](database, resp, options)
       }
+
+    def stream[T: Decoder](using Encoder[Query], Decoder[Cursor[T]]): ZStream[Any, ArangoError, T] =
+      ZStream.unwrap(
+        for cursorResults <- cursor[T]
+        yield ZStream.paginateChunkZIO(cursorResults) { cursor =>
+          val results = Chunk.fromIterable(cursor.body.result)
+
+          if cursor.body.hasMore then cursor.next.map(nextCursor => (results, Some(nextCursor)))
+          else ZIO.succeed(results -> None)
+        }
+      )
