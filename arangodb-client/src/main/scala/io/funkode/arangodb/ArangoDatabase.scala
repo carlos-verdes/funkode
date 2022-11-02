@@ -3,6 +3,7 @@ package io.funkode.arangodb
 import io.lemonlabs.uri.UrlPath
 import io.lemonlabs.uri.typesafe.dsl.*
 import zio.*
+
 import models.*
 import protocol.*
 

@@ -3,10 +3,11 @@
  */
 package io.funkode.arangodb
 
-import models.*
-import protocol.*
 import zio.*
 import zio.stream.*
+
+import models.*
+import protocol.*
 
 trait ArangoQuery[Encoder[_], Decoder[_]]:
 

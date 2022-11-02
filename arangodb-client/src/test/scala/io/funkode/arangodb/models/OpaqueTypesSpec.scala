@@ -1,11 +1,11 @@
 package io.funkode.arangodb.models
 
+import zio.test.*
+
 import io.funkode.arangodb.models
 import io.funkode.arangodb.protocol.ArangoMessage
 import io.funkode.arangodb.protocol.ArangoMessage.error
 import io.funkode.arangodb.protocol.ArangoMessageSpec.{suite, test}
-import zio.test.{Spec, TestEnvironment, ZIOSpecDefault, assertTrue}
-
 import models.*
 
 trait ModelExamples:

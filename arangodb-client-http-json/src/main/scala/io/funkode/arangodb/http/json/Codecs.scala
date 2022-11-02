@@ -5,14 +5,16 @@ package io.funkode.arangodb
 package http
 package json
 
-import io.funkode.velocypack.VPack
 import zio.json.*
 import zio.json.ast.*
 import zio.json.internal.*
 
+import io.funkode.velocypack.*
+
 trait Codecs:
 
   import models.*
+  import VPack.*
 
   given JsonCodec[ArangoError] = DeriveJsonCodec.gen[ArangoError]
   given result[O](using JsonCodec[O]): JsonCodec[ArangoResult[O]] = DeriveJsonCodec.gen[ArangoResult[O]]
@@ -53,6 +55,17 @@ trait Codecs:
   given JsonCodec[DocumentHandle] =
     DeriveOpaqueTypeCodec.gen((s: String) => DocumentHandle.parse(s).get, DocumentHandle.unwrap)
 
-  given JsonEncoder[VPack] = new JsonEncoder[VPack]:
-    override def unsafeEncode(vpack: VPack, indent: Option[Int], out: Write): Unit =
-      Json.Str.apply("not implemented")
+  given JsonEncoder[VObject] = JsonEncoder[Map[String, VPack]].contramap(_.values)
+
+  given JsonEncoder[VPack] = (vpack: VPack, indent: Option[Int], out: Write) =>
+    vpack match
+      case VNone | VNone | VNull | VIllegal => JsonEncoder[String].unsafeEncode(null, indent, out)
+      case VBoolean(value)                  => JsonEncoder[Boolean].unsafeEncode(value, indent, out)
+      case VDouble(value)                   => JsonEncoder[Double].unsafeEncode(value, indent, out)
+      case VDate(value)                     => JsonEncoder[Long].unsafeEncode(value, indent, out)
+      case VSmallint(value)                 => JsonEncoder[Int].unsafeEncode(value, indent, out)
+      case VLong(value)                     => JsonEncoder[Long].unsafeEncode(value, indent, out)
+      case VString(value)                   => JsonEncoder[String].unsafeEncode(value, indent, out)
+      case VBinary(value)                   => JsonEncoder[String].unsafeEncode(value.toBase64, indent, out)
+      case VArray(values) => JsonEncoder[Array[VPack]].unsafeEncode(values.toArray, indent, out)
+      case obj: VObject   => JsonEncoder[VObject].unsafeEncode(obj, indent, out)

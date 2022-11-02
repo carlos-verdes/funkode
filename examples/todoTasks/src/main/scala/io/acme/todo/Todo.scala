@@ -2,10 +2,11 @@ package io.acme.todo
 
 import java.util.UUID
 
-import io.funkode.rest.ApiError
 import io.lemonlabs.uri.Urn
 import zio.*
 import zio.json.*
+
+import io.funkode.rest.ApiError
 
 case class Todo(description: String, done: Boolean = false) derives JsonCodec
 

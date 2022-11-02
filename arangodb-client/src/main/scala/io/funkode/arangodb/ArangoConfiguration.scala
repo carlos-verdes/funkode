@@ -1,10 +1,11 @@
 package io.funkode.arangodb
 
-import scala.concurrent.duration.*
 import java.util.concurrent.TimeUnit.*
 
-import zio.config.magnolia.*
+import scala.concurrent.duration.*
+
 import zio.config.*
+import zio.config.magnolia.*
 import zio.config.typesafe.*
 
 final case class ArangoConfiguration(

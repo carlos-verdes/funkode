@@ -5,6 +5,7 @@ package io.funkode.arangodb
 
 import io.lemonlabs.uri.UrlPath
 import zio.*
+
 import models.*
 import protocol.*
 

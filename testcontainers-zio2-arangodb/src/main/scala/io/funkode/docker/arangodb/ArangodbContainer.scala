@@ -1,19 +1,20 @@
 package io.funkode.docker.arangodb
 
-import scala.util.Random
 import scala.language.adhocExtensions
+import scala.util.Random
 
 import com.dimafeng.testcontainers.GenericContainer
 import com.dimafeng.testcontainers.GenericContainer.FileSystemBind
-import io.funkode.arangodb
-import io.funkode.arangodb.*
-import io.funkode.arangodb.models.*
-import io.funkode.arangodb.http.json.ArangoClientJson
 import io.netty.handler.codec.http.HttpHeaderNames
 import org.testcontainers.containers.BindMode
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy
 import zio.*
 import zio.http.*
+
+import io.funkode.arangodb
+import io.funkode.arangodb.*
+import io.funkode.arangodb.http.json.ArangoClientJson
+import io.funkode.arangodb.models.*
 
 class ArangodbContainer(
     val password: String,
