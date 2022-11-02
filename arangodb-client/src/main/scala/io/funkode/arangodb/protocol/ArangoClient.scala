@@ -5,6 +5,7 @@ package io.funkode.arangodb
 package protocol
 
 import zio.*
+
 import models.*
 
 trait ArangoClient[Encoder[_], Decoder[_]]:

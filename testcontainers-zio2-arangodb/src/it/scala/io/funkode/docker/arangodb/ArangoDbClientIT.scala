@@ -4,6 +4,7 @@ import io.funkode.arangodb.*
 import io.funkode.arangodb.models.*
 import io.funkode.arangodb.http.json.*
 import io.funkode.arangodb.protocol.ArangoMessage.Header
+import io.funkode.velocypack.*
 import zio.*
 import zio.http.Client
 import zio.json.*
@@ -45,6 +46,7 @@ trait ArangoExamples:
 object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
 
   import codecs.given
+  import VPack.*
 
   override def spec: Spec[TestEnvironment, Any] =
     suite("ArangoDB client should")(
@@ -145,7 +147,10 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
           databaseApi <- ArangoDatabaseJson.changeTo(DatabaseName("test"))
           queryCountries =
             databaseApi
-              .query(Query("FOR c IN countries SORT c RETURN c"))
+              .query(
+                Query("FOR c IN @@col SORT c RETURN c")
+                  .bindVar("@col", VString("countries"))
+              )
               .count(true)
               .batchSize(2)
           cursor <- queryCountries.cursor[Country]

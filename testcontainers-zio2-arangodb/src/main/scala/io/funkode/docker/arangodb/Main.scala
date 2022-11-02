@@ -3,13 +3,14 @@
  */
 package io.funkode.docker.arangodb
 
-import io.funkode.arangodb.*
-import io.funkode.arangodb.http.json.*
 import zio.*
 import zio.Console.*
-import zio.json.*
 import zio.http.Client
 import zio.http.Middleware.*
+import zio.json.*
+
+import io.funkode.arangodb.*
+import io.funkode.arangodb.http.json.*
 
 object Main extends ZIOAppDefault:
 

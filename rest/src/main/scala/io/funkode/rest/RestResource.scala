@@ -6,7 +6,7 @@ import io.lemonlabs.uri.Uri
 case class ResourceLink(uri: Uri, rel: String, attributes: Map[String, String] = Map.empty)
 type ResourceLinks = Map[String, ResourceLink]
 
-case class RestResource[R](
+case class Resource[R](
     uri: Uri,
     body: R,
     resourceType: String,

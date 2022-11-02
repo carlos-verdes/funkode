@@ -7,7 +7,7 @@ import io.funkode.velocypack.*
 
 case class Query(
     query: String,
-    bindVars: Option[VPack],
+    bindVars: Option[VPack.VObject],
     batchSize: Option[Long] = None,
     cache: Option[Boolean] = None,
     count: Option[Boolean] = None,
@@ -19,6 +19,14 @@ case class Query(
 object Query:
 
   def apply(query: String): Query = new Query(query, None)
+
+  extension (q: Query)
+    def bindVar(key: String, value: VPack): Query =
+
+      import VObject.updated
+
+      val newBindVars = q.bindVars.map(_.updated(key, value)).getOrElse(VObject(key -> value))
+      q.copy(bindVars = Some(newBindVars))
 
   final case class Options(
       failOnWarning: Option[Boolean],

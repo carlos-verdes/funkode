@@ -2,9 +2,10 @@ package io.funkode.arangodb
 package http
 package json
 
-import io.funkode.arangodb.protocol.ArangoClient
 import zio.{ZIO, ZLayer}
 import zio.json.{JsonDecoder, JsonEncoder}
+
+import io.funkode.arangodb.protocol.ArangoClient
 
 type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
 

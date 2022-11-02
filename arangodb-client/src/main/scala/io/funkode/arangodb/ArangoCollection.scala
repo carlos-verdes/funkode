@@ -1,9 +1,10 @@
 package io.funkode.arangodb
 
+import zio.*
+
 import io.funkode.arangodb
 import models.*
 import protocol.*
-import zio.*
 
 trait ArangoCollection[Encoder[_], Decoder[_]]:
 

@@ -4,10 +4,11 @@
 package io.acme.todo
 package outbound
 
-import io.funkode.rest.ApiError
 import io.lemonlabs.uri.Urn
 import zio.*
 import zio.concurrent.ConcurrentMap
+
+import io.funkode.rest.ApiError
 
 trait TodoRepository:
   def saveTodo(urn: Urn, todo: Todo): IO[ApiError, Todo]
