@@ -19,6 +19,7 @@ case class Query(
 object Query:
 
   def apply(query: String): Query = new Query(query, None)
+  def apply(query: String, bindVars: VPack.VObject): Query = new Query(query, Some(bindVars))
 
   extension (q: Query)
     def bindVar(key: String, value: VPack): Query =

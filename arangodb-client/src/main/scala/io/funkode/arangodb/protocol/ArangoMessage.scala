@@ -51,7 +51,7 @@ object ArangoMessage:
     ): AIO[O] =
       arangoClient.getBody[O](header)
 
-    def executeIgnoreResult[Encoder[_], Decoder[_], O](using
+    def executeIgnoreResult[O, Encoder[_], Decoder[_]](using
         arangoClient: ArangoClient[Encoder, Decoder],
         D: Decoder[ArangoResult[O]]
     ): AIO[O] =

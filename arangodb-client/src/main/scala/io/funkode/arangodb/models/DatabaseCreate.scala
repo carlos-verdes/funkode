@@ -3,7 +3,7 @@ package models
 
 case class DatabaseCreate(
     name: DatabaseName,
-    users: Vector[DatabaseCreate.User] = Vector.empty,
+    users: List[DatabaseCreate.User] = List.empty,
     options: Map[String, String] = Map.empty
 )
 
