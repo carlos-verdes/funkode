@@ -9,6 +9,7 @@ opaque type DocumentKey = String
 opaque type DocumentHandle = (CollectionName, DocumentKey)
 opaque type DocumentRevision = String
 opaque type DatabaseName = String
+opaque type GraphName = String
 opaque type TransactionId = String
 
 object CollectionName:
@@ -74,6 +75,11 @@ object DocumentRevision:
   extension (value: DocumentRevision) def unwrap: String = value
 
   val empty = apply("")
+
+object GraphName:
+
+  def apply(value: String): GraphName = value
+  extension (value: GraphName) def unwrap: String = value
 
 object TransactionId:
 
