@@ -4,7 +4,8 @@ import io.lemonlabs.uri.UrlPath
 import io.lemonlabs.uri.typesafe.dsl.*
 import zio.*
 
-import models.*
+import io.funkode.velocypack.{VObject, VPack}
+import models.{CollectionInfo, *}
 import protocol.*
 
 trait ArangoDatabase[Encoder[_], Decoder[_]]:
@@ -13,19 +14,19 @@ trait ArangoDatabase[Encoder[_], Decoder[_]]:
 
   def collection(name: CollectionName): ArangoCollection[Encoder, Decoder]
 
+  def document(handle: DocumentHandle): ArangoDocument[Encoder, Decoder]
+
+  def graphs(using Decoder[ArangoResult[GraphList]]): AIO[List[GraphInfo]]
+
+  def graph(graphName: GraphName): ArangoGraph[Encoder, Decoder]
+
   /*
-  def document(handle: DocumentHandle): ArangoDocument[F]
-
-  def graphs(): F[ArangoResponse[Vector[GraphInfo]]]
-
-  def graph(graphName: GraphName): ArangoGraph[F]
-
   def transactions: ArangoTransactions[F]
 
   def wal: ArangoWal[F]
    */
 
-  def create(users: Vector[DatabaseCreate.User] = Vector.empty)(using
+  def create(users: List[DatabaseCreate.User] = List.empty)(using
       Encoder[DatabaseCreate],
       Decoder[ArangoResult[Boolean]]
   ): AIO[Boolean]
@@ -34,15 +35,15 @@ trait ArangoDatabase[Encoder[_], Decoder[_]]:
 
   def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean]
 
-  /*
-  def collections(excludeSystem: Boolean = false): F[ArangoResponse[Vector[CollectionInfo]]]
-   */
-  def query(query: Query): ArangoQuery[Encoder, Decoder]
-/*
-  def query[V: VPackEncoder](qs: String, bindVars: V): ArangoQuery[F, V] = self.query(Query(qs, bindVars))
+  def collections(excludeSystem: Boolean = false)(using
+      Decoder[ArangoResult[Result[List[CollectionInfo]]]]
+  ): AIO[List[CollectionInfo]]
 
-  def query(qs: String): ArangoQuery[F, VObject] = self.query(qs, VObject.empty)
- */
+  def query(query: Query): ArangoQuery[Encoder, Decoder]
+
+  def query(qs: String, bindVars: VPack.VObject): ArangoQuery[Encoder, Decoder] = query(Query(qs, bindVars))
+
+  def query(qs: String): ArangoQuery[Encoder, Decoder] = query(qs, VObject.empty)
 
 object ArangoDatabase:
 
@@ -59,7 +60,16 @@ object ArangoDatabase:
     override def collection(collectionName: CollectionName): ArangoCollection[Encoder, Decoder] =
       new ArangoCollection.Impl[Encoder, Decoder](this.name, collectionName)(using arangoClient)
 
-    def create(users: Vector[DatabaseCreate.User] = Vector.empty)(using
+    def document(handle: DocumentHandle): ArangoDocument[Encoder, Decoder] =
+      new ArangoDocument.Impl[Encoder, Decoder](name, handle)
+
+    def graphs(using Decoder[ArangoResult[GraphList]]): AIO[List[GraphInfo]] =
+      GET(name, ApiGharialPath).executeIgnoreResult[GraphList, Encoder, Decoder].map(_.graphs)
+
+    def graph(graphName: GraphName): ArangoGraph[Encoder, Decoder] =
+      new ArangoGraph.Impl[Encoder, Decoder](name, graphName)
+
+    def create(users: List[DatabaseCreate.User] = List.empty)(using
         Encoder[DatabaseCreate],
         Decoder[ArangoResult[Boolean]]
     ): AIO[Boolean] =
@@ -70,6 +80,13 @@ object ArangoDatabase:
 
     def drop(using Decoder[ArangoResult[Boolean]]): AIO[Boolean] =
       DELETE(DatabaseName.system, ApiDatabase.addPart(name.unwrap)).executeIgnoreResult
+
+    def collections(
+        excludeSystem: Boolean = false
+    )(using Decoder[ArangoResult[Result[List[CollectionInfo]]]]): AIO[List[CollectionInfo]] =
+      GET(name, ApiCollectionPath, Map("excludeSystem" -> excludeSystem.toString))
+        .executeIgnoreResult[Result[List[CollectionInfo]], Encoder, Decoder]
+        .map(_.result)
 
     def query(query: Query): ArangoQuery[Encoder, Decoder] =
       new ArangoQuery.Impl(name, query)

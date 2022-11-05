@@ -5,14 +5,13 @@ package json
 import zio.{ZIO, ZLayer}
 import zio.json.{JsonDecoder, JsonEncoder}
 
-import io.funkode.arangodb.protocol.ArangoClient
-
 type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
 
 object ArangoDatabaseJson:
 
   import codecs.given
   import models.*
+  import protocol.ArangoClient
 
   type JDAIO[O] = ZIO[ArangoDatabaseJson, ArangoError, O]
 

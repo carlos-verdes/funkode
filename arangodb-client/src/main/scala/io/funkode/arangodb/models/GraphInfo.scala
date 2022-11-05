@@ -12,3 +12,9 @@ case class GraphInfo(
     isSmart: Boolean = false,
     smartGraphAttribute: Option[String] = None
 )
+
+object GraphInfo:
+
+  final case class Response(
+      graph: GraphInfo
+  )
