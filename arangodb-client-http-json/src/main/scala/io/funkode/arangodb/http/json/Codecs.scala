@@ -30,6 +30,14 @@ trait Codecs:
   given JsonCodec[DatabaseCreate] = DeriveJsonCodec.gen[DatabaseCreate]
   given JsonCodec[DatabaseInfo] = DeriveJsonCodec.gen[DatabaseInfo]
   given JsonCodec[DeleteResult] = DeriveJsonCodec.gen[DeleteResult]
+  given JsonCodec[GraphCollections] = DeriveJsonCodec.gen[GraphCollections]
+  given JsonCodec[GraphCreate] = DeriveJsonCodec.gen[GraphCreate]
+  given edge[T](using JsonCodec[T]): JsonCodec[GraphEdge[T]] = DeriveJsonCodec.gen[GraphEdge[T]]
+  given JsonCodec[GraphEdgeDefinition] = DeriveJsonCodec.gen[GraphEdgeDefinition]
+  given JsonCodec[GraphInfo] = DeriveJsonCodec.gen[GraphInfo]
+  given JsonCodec[GraphInfo.Response] = DeriveJsonCodec.gen[GraphInfo.Response]
+  given JsonCodec[GraphList] = DeriveJsonCodec.gen[GraphList]
+  given vertex[T](using JsonCodec[T]): JsonCodec[GraphVertex[T]] = DeriveJsonCodec.gen[GraphVertex[T]]
   given doc[T: JsonCodec]: JsonCodec[Document[T]] = DeriveJsonCodec.gen[Document[T]]
   given JsonCodec[Query.Options] = DeriveJsonCodec.gen[Query.Options]
   given JsonEncoder[Query] = DeriveJsonEncoder.gen[Query]
@@ -43,6 +51,7 @@ trait Codecs:
   given JsonCodec[DocumentKey] = DeriveOpaqueTypeCodec.gen(DocumentKey.apply, DocumentKey.unwrap)
   given JsonCodec[DocumentRevision] =
     DeriveOpaqueTypeCodec.gen(DocumentRevision.apply, DocumentRevision.unwrap)
+  given JsonCodec[GraphName] = DeriveOpaqueTypeCodec.gen(GraphName.apply, GraphName.unwrap)
   given JsonCodec[TransactionId] = DeriveOpaqueTypeCodec.gen(TransactionId.apply, TransactionId.unwrap)
 
   // enum based types

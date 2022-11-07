@@ -17,6 +17,18 @@ object Main extends ZIOAppDefault:
   import models.*
   import codecs.given
 
+  case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle) derives JsonCodec
+
+  val testDb = DatabaseName("test")
+  val politics = GraphName("politics")
+  val allies = CollectionName("allies")
+  val countries = CollectionName("countries")
+  val graphEdgeDefinitions = List(GraphEdgeDefinition(allies, List(countries), List(countries)))
+  val es = DocumentHandle(countries, DocumentKey("ES"))
+  val fr = DocumentHandle(countries, DocumentKey("FR"))
+  val us = DocumentHandle(countries, DocumentKey("US"))
+  val alliesOfEs = List(Rel("ally", es, fr), Rel("ally", es, us), Rel("ally", us, fr))
+
   def app =
     for
       _ <- printLine("Starting container")
@@ -26,15 +38,12 @@ object Main extends ZIOAppDefault:
       _ <- printLine(s"http://localhost:${container.configuration.port}/")
       serverInfo <- ArangoServerJson.version(false)
       _ <- printLine(s"""Server info: $serverInfo""")
-      _ <- printLine(s"""Creating test2 database""")
-      databaseApi <- ArangoDatabaseJson.changeTo(DatabaseName("test2"))
-      dbCreated <- databaseApi.create()
-      _ <- printLine(s"""Database created? $dbCreated""")
-      databaseInfo <- databaseApi.info
-      _ <- printLine(s"""Database info $databaseInfo""")
-      _ <- printLine(s"""Deleting test2 database""")
-      dbDropped <- databaseApi.drop
-      _ <- printLine(s"""Database dropped? $dbDropped""")
+      db <- ArangoDatabaseJson.changeTo(testDb)
+      graph = db.graph(politics)
+      graphCreated <- graph.create(graphEdgeDefinitions)
+      alliesCol = db.collection(allies)
+      _ <- alliesCol.documents.create(alliesOfEs)
+      _ <- printLine(s"""Graph created: $graphCreated""")
       _ <- printLine(s"""Press any key to exit""")
       _ <- readLine
     yield ()
