@@ -12,7 +12,7 @@ trait ArangoGraph[Encoder[_], Decoder[_]]:
       edgeDefinitions: List[GraphEdgeDefinition] = List.empty,
       orphanCollections: List[String] = List.empty,
       waitForSync: Boolean = false
-  )(using Encoder[GraphCreate], Decoder[ArangoResult[GraphInfo.Response]]): AIO[GraphInfo]
+  )(using Encoder[GraphCreate], Decoder[GraphInfo.Response]): AIO[GraphInfo]
 
   def info(using Decoder[ArangoResult[GraphInfo.Response]]): AIO[GraphInfo]
 
@@ -55,7 +55,7 @@ object ArangoGraph:
         edgeDefinitions: List[GraphEdgeDefinition] = List.empty,
         orphanCollections: List[String] = List.empty,
         waitForSync: Boolean = false
-    )(using Encoder[GraphCreate], Decoder[ArangoResult[GraphInfo.Response]]): AIO[GraphInfo] =
+    )(using Encoder[GraphCreate], Decoder[GraphInfo.Response]): AIO[GraphInfo] =
       POST(
         database,
         ApiGharialPath,
@@ -64,7 +64,7 @@ object ArangoGraph:
         )
       ).withBody(
         GraphCreate(name, edgeDefinitions, orphanCollections)
-      ).executeIgnoreResult[GraphInfo.Response, Encoder, Decoder]
+      ).execute[GraphInfo.Response, Encoder, Decoder]
         .map(_.graph)
 
     def info(using Decoder[ArangoResult[GraphInfo.Response]]): AIO[GraphInfo] =
