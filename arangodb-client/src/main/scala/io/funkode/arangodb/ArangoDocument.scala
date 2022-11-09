@@ -1,5 +1,7 @@
 package io.funkode.arangodb
 
+import io.funkode.velocypack.*
+
 import models.*
 import protocol.*
 
@@ -58,7 +60,12 @@ trait ArangoDocument[Encoder[_], Decoder[_]]:
       Decoder[Document[T]]
   ): AIO[Document[T]]
 
-  // def upsert(obj: VObject): ArangoQuery[F, VObject]
+  import VPack.*
+
+  def upsert(obj: VObject)(using
+      Encoder[Query],
+      Decoder[Cursor[VObject]]
+  ): AIO[VObject]
 
 object ArangoDocument:
 
@@ -185,3 +192,27 @@ object ArangoDocument:
           Transaction.Key -> transaction.map(_.unwrap)
         ).collectDefined
       ).withBody(document).execute
+
+    import VPack.*
+    import VObject.updated
+    import VPackEncoder.given
+
+    def upsert(obj: VObject)(using
+        Encoder[Query],
+        Decoder[Cursor[VObject]]
+    ): AIO[VObject] =
+      val kvs = obj.values.keys
+        .map { key =>
+          key + ":@" + key
+        }
+        .mkString(",")
+      val queryString =
+        s"UPSERT {_key:@_key} INSERT {_key:@_key,$kvs} UPDATE {$kvs} IN @@collection RETURN NEW"
+
+      new ArangoQuery.Impl[Encoder, Decoder](
+        databaseName,
+        Query(
+          queryString,
+          obj.updated("@collection", handle.collection.unwrap).updated("_key", handle.key.unwrap)
+        )
+      ).execute[VObject].map(_.result.head)

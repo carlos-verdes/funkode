@@ -1,9 +1,9 @@
 package io.funkode.docker.arangodb
 
-import io.funkode.arangodb.*
+import io.funkode.arangodb.ArangoConfiguration
 import io.funkode.arangodb.models.*
-import io.funkode.arangodb.http.json.*
 import io.funkode.arangodb.protocol.ArangoMessage.Header
+import io.funkode.arangodb.http.json.*
 import io.funkode.velocypack.*
 import zio.*
 import zio.http.Client
@@ -14,6 +14,8 @@ import zio.test.{assert, *}
 trait ArangoExamples:
 
   import codecs.given
+  import VPack.*
+  import VPackEncoder.given
 
   case class Country(flag: String, name: String) derives JsonCodec
   case class Pet(name: String, age: Int) derives JsonCodec
@@ -34,6 +36,9 @@ trait ArangoExamples:
 
   val petWithKey = PetWithKey(DocumentKey("123"), "turtle", 23)
   val patchPetWithKey = PatchAge(DocumentKey("123"), 24)
+  // TODO review why UPSERT doesn't behave like web interface, we should ommit name attribute
+  val upsertPet = VObject("name" -> "turtle", "age" -> 30)
+  val upsertedPet = VObject("name" -> "turtle", "age" -> 30)
   val newPetWithKey = PetWithKey(DocumentKey("123"), "turtle", 24)
 
   def patchPet(_key: DocumentKey) = PatchAge(_key, 5)
@@ -122,7 +127,9 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
           countAfterUpdate <- documents.count()
           replaced <- document
             .replace[PatchAge](patchPetWithKey, waitForSync = true, returnNew = true)
-          countAfterUpdate <- documents.count()
+          countAfterReplace <- documents.count()
+          upserted <- document.upsert(upsertPet)
+          countAfterUpsert <- documents.count()
           deletedDoc <- document.remove[PatchAge](true)
           countAfterDelete <- documents.count()
           _ <- collection.drop()
@@ -136,9 +143,13 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
           ) &&
           // `update` patches original
           assertTrue(updated.`new`.get == newPetWithKey) &&
+          assertTrue(countAfterUpdate.count == 1L) &&
           // `replace` only stores new document
           assertTrue(replaced.`new`.get == patchPetWithKey) &&
-          assertTrue(countAfterUpdate.count == 1L) &&
+          assertTrue(countAfterReplace.count == 1L) &&
+          // `upsert` insert/update
+          assertTrue(upserted.pure == upsertedPet) &&
+          assertTrue(countAfterUpsert.count == 1L) &&
           assertTrue(deletedDoc._key == petWithKey._key) &&
           assertTrue(countAfterDelete.count == 0L)
       },

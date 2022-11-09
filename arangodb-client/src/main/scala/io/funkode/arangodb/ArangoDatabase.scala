@@ -4,8 +4,8 @@ import io.lemonlabs.uri.UrlPath
 import io.lemonlabs.uri.typesafe.dsl.*
 import zio.*
 
-import io.funkode.velocypack.{VObject, VPack}
-import models.{CollectionInfo, *}
+import io.funkode.velocypack.VPack.*
+import models.*
 import protocol.*
 
 trait ArangoDatabase[Encoder[_], Decoder[_]]:
@@ -41,7 +41,7 @@ trait ArangoDatabase[Encoder[_], Decoder[_]]:
 
   def query(query: Query): ArangoQuery[Encoder, Decoder]
 
-  def query(qs: String, bindVars: VPack.VObject): ArangoQuery[Encoder, Decoder] = query(Query(qs, bindVars))
+  def query(qs: String, bindVars: VObject): ArangoQuery[Encoder, Decoder] = query(Query(qs, bindVars))
 
   def query(qs: String): ArangoQuery[Encoder, Decoder] = query(qs, VObject.empty)
 

@@ -24,6 +24,7 @@ object Query:
   extension (q: Query)
     def bindVar(key: String, value: VPack): Query =
 
+      import VPack.*
       import VObject.updated
 
       val newBindVars = q.bindVars.map(_.updated(key, value)).getOrElse(VObject(key -> value))
