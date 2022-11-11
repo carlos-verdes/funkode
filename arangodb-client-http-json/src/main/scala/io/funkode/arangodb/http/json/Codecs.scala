@@ -8,8 +8,8 @@ package json
 import zio.json.*
 import zio.json.ast.*
 import zio.json.internal.*
-
 import io.funkode.velocypack.*
+import zio.json.JsonDecoder.{JsonError, UnsafeJson}
 
 trait Codecs:
 
@@ -64,12 +64,14 @@ trait Codecs:
   given JsonCodec[DocumentHandle] =
     DeriveOpaqueTypeCodec.gen((s: String) => DocumentHandle.parse(s).get, DocumentHandle.unwrap)
 
-  given JsonEncoder[VObject] = JsonEncoder[Map[String, VPack]].contramap(_.values)
+  given vobjectEncoder: JsonEncoder[VObject] = JsonEncoder[Map[String, VPack]].contramap(_.values)
 
-  given JsonEncoder[VPack] = (vpack: VPack, indent: Option[Int], out: Write) =>
+  given vpackEncoder: JsonEncoder[VPack] = (vpack: VPack, indent: Option[Int], out: Write) =>
     vpack match
       case VNone | VNone | VNull | VIllegal => JsonEncoder[String].unsafeEncode(null, indent, out)
       case VBoolean(value)                  => JsonEncoder[Boolean].unsafeEncode(value, indent, out)
+      case VTrue                            => JsonEncoder[Boolean].unsafeEncode(true, indent, out)
+      case VFalse                           => JsonEncoder[Boolean].unsafeEncode(false, indent, out)
       case VDouble(value)                   => JsonEncoder[Double].unsafeEncode(value, indent, out)
       case VDate(value)                     => JsonEncoder[Long].unsafeEncode(value, indent, out)
       case VSmallint(value)                 => JsonEncoder[Int].unsafeEncode(value, indent, out)
@@ -78,3 +80,25 @@ trait Codecs:
       case VBinary(value)                   => JsonEncoder[String].unsafeEncode(value.toBase64, indent, out)
       case VArray(values) => JsonEncoder[Array[VPack]].unsafeEncode(values.toArray, indent, out)
       case obj: VObject   => JsonEncoder[VObject].unsafeEncode(obj, indent, out)
+
+  def jsonObjectToVObject(jsonObject: Json.Obj): VObject =
+    VObject(jsonObject.fields.map((key, value) => (key, jsonToVpack(value))).toList*)
+
+  def jsonToVpack(json: Json): VPack = json match
+    case obj: Json.Obj      => jsonObjectToVObject(obj)
+    case Json.Arr(elements) => VPackEncoder.listEncoder[VPack].encode(elements.toList.map(jsonToVpack))
+    case Json.Bool(value)   => VBoolean(value)
+    case Json.Str(value)    => VPackEncoder.stringEncoder.encode(value)
+    case Json.Num(value)    => VPackEncoder.bigDecimalEncoder.encode(value)
+    case Json.Null          => VNull
+
+  given vpackDecoder: JsonDecoder[VPack] = JsonDecoder[Json].map(jsonToVpack)
+
+  given vobjectDecoder: JsonDecoder[VObject] = (trace: List[JsonError], in: RetractReader) =>
+    vpackDecoder
+      .unsafeDecode(trace, in) match
+      case obj: VObject => obj
+      case other        => throw UnsafeJson(JsonError.Message(s"expected VObject found: ${other}") :: trace)
+
+  given JsonCodec[VPack] = JsonCodec(vpackEncoder, vpackDecoder)
+  given JsonCodec[VObject] = JsonCodec(vobjectEncoder, vobjectDecoder)
