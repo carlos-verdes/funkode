@@ -13,7 +13,7 @@ import zio.http.*
 
 import io.funkode.arangodb
 import io.funkode.arangodb.*
-import io.funkode.arangodb.http.json.ArangoClientJson
+import io.funkode.arangodb.http.json.{Arango, ArangoClientJson}
 import io.funkode.arangodb.models.*
 
 class ArangodbContainer(
@@ -83,9 +83,10 @@ object ArangodbContainer:
         container
       }.orDie
     )(container =>
-      ZIO
-        .attemptBlocking(container.stop())
-        .ignoreLogged
+      ZIO.attemptBlocking {
+        println("Stopping docker for Arango")
+        container.stop()
+      }.ignoreLogged
     )
 
   def makeScopedClient(container: ArangodbContainer, configuration: ArangoConfiguration, httpClient: Client) =

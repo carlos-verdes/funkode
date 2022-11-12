@@ -69,15 +69,15 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
   override def spec: Spec[TestEnvironment, Any] =
     suite("ArangoDB client should")(
       test("Connect and login automatically") {
-        for serverInfo <- ArangoServerJson.version()
+        for serverInfo <- Arango.server.version()
         yield assertTrue(serverInfo == ServerVersion("arango", "community", "3.7.15"))
       },
       test("Create and drop a database") {
         for
-          databaseApi <- ArangoDatabaseJson.changeTo(testDatabaseName)
-          createResult <- databaseApi.create()
-          dataInfo <- databaseApi.info
-          deleteResult <- databaseApi.drop
+          db <- Arango.changeTo(testDatabaseName).db
+          createResult <- db.create()
+          dataInfo <- db.info
+          deleteResult <- db.drop
         yield assertTrue(createResult) &&
           assertTrue(dataInfo.name == testDatabase.name) &&
           assertTrue(!dataInfo.isSystem) &&
@@ -85,7 +85,7 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
       },
       test("Create and drop a collection (default database)") {
         for
-          collection <- ArangoDatabaseJson.collection(randomCollection)
+          collection <- Arango.collection(randomCollection)
           createdCollection <- collection.create()
           collectionInfo <- collection.info
           collectionChecksum <- collection.checksum()
@@ -98,7 +98,7 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
       },
       test("Save documents in a collection") {
         for
-          collection <- ArangoDatabaseJson.collection(petsCollection)
+          collection <- Arango.collection(petsCollection)
           createdCollection <- collection.create()
           documents = collection.documents
           inserted1 <- documents.insert(pet1, true, true)
@@ -126,7 +126,7 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
       },
       test("Save single document in a collection") {
         for
-          collection <- ArangoDatabaseJson.collection(pets2Collection)
+          collection <- Arango.collection(pets2Collection)
           createdCollection <- collection.create()
           documents = collection.documents
           document = collection.document(petWithKey._key)
@@ -168,9 +168,9 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
       },
       test("Query documents with cursor") {
         for
-          databaseApi <- ArangoDatabaseJson.changeTo(DatabaseName("test"))
+          db <- Arango.changeTo(DatabaseName("test")).db
           queryCountries =
-            databaseApi
+            db
               .query(
                 Query("FOR c IN @@col SORT c RETURN c")
                   .bindVar("@col", VString("countries"))
@@ -194,7 +194,7 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
       },
       test("Create a graph and query") {
         for
-          db <- ArangoDatabaseJson.changeTo(testDb)
+          db <- Arango.changeTo(testDb).db
           graph = db.graph(politics)
           graphCreated <- graph.create(graphEdgeDefinitions)
           alliesCol = db.collection(allies)
@@ -215,6 +215,5 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
       ArangoConfiguration.default,
       Client.default,
       ArangodbContainer.life,
-      ArangoServerJson.life,
-      ArangoDatabaseJson.life
+      Arango.life
     ) // @@ TestAspect.sequential

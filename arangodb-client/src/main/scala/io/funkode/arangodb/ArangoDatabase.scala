@@ -47,8 +47,6 @@ trait ArangoDatabase[Encoder[_], Decoder[_]]:
 
 object ArangoDatabase:
 
-  type DAIO[Encoder[_], Decoder[_], O] = ZIO[ArangoDatabase[Encoder, Decoder], ArangoError, O]
-
   import ArangoMessage.*
 
   class Impl[Encoder[_], Decoder[_]](databaseName: DatabaseName)(using
@@ -91,28 +89,20 @@ object ArangoDatabase:
     def query(query: Query): ArangoQuery[Encoder, Decoder] =
       new ArangoQuery.Impl(name, query)
 
-  def newInstance[Enc[_]: TagK, Dec[_]: TagK](
-      databaseName: DatabaseName
-  ): RAIO[Enc, Dec, ArangoDatabase[Enc, Dec]] =
-    ZIO
-      .service[ArangoClient[Enc, Dec]]
-      .map(arangoClient => new ArangoDatabase.Impl(databaseName)(using arangoClient))
+  extension [R, Enc[_], Dec[_]](dbService: ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]])
+    def create(users: List[DatabaseCreate.User] = List.empty)(using
+        Enc[DatabaseCreate],
+        Dec[ArangoResult[Boolean]]
+    ): ZIO[R, ArangoError, Boolean] =
+      dbService.flatMap(_.create(users))
 
-  def default[Enc[_]: TagK, Dec[_]: TagK]
-      : ZLayer[ArangoConfiguration & ArangoClient[Enc, Dec], ArangoError, ArangoDatabase[Enc, Dec]] =
-    ZLayer(
-      for
-        config <- ZIO.service[ArangoConfiguration]
-        databaseApi <- newInstance[Enc, Dec](config.database)
-      yield databaseApi
-    )
+    def info(using Dec[ArangoResult[DatabaseInfo]]): ZIO[R, ArangoError, DatabaseInfo] =
+      dbService.flatMap(_.info)
 
-  def changeTo[Enc[_]: TagK, Dec[_]: TagK](
-      newDatabaseName: DatabaseName
-  ): RAIO[Enc, Dec, ArangoDatabase[Enc, Dec]] =
-    newInstance(newDatabaseName)
+    def drop(using Dec[ArangoResult[Boolean]]): ZIO[R, ArangoError, Boolean] =
+      dbService.flatMap(_.drop)
 
-  def collection[Enc[_]: TagK, Dec[_]: TagK](
-      collectionName: CollectionName
-  ): DAIO[Enc, Dec, ArangoCollection[Enc, Dec]] =
-    ZIO.service[ArangoDatabase[Enc, Dec]].map(_.collection(collectionName))
+    def collections(excludeSystem: Boolean = false)(using
+        Dec[ArangoResult[Result[List[CollectionInfo]]]]
+    ): ZIO[R, ArangoError, List[CollectionInfo]] =
+      dbService.flatMap(_.collections(excludeSystem))

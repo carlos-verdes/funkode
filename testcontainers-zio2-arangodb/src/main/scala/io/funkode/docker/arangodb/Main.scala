@@ -36,9 +36,9 @@ object Main extends ZIOAppDefault:
       _ <- printLine("Arango db container started on port " + container.configuration.port)
       _ <- printLine(s"Try using 'root' user and ${container.configuration.password}")
       _ <- printLine(s"http://localhost:${container.configuration.port}/")
-      serverInfo <- ArangoServerJson.version(false)
+      serverInfo <- Arango.server.version()
       _ <- printLine(s"""Server info: $serverInfo""")
-      db <- ArangoDatabaseJson.changeTo(testDb)
+      db <- Arango.changeTo(testDb).db
       graph = db.graph(politics)
       graphCreated <- graph.create(graphEdgeDefinitions)
       alliesCol = db.collection(allies)
@@ -51,7 +51,7 @@ object Main extends ZIOAppDefault:
   def run = app.provide(
     ArangoConfiguration.default,
     ArangodbContainer.life,
-    ArangoServerJson.life,
+    Arango.life,
     Client.default,
     Scope.default
   )

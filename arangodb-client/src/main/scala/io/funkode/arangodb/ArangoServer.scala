@@ -35,3 +35,9 @@ object ArangoServer:
 
     def version(details: Boolean = false)(using D: Decoder[ServerVersion]): AIO[ServerVersion] =
       GET(DatabaseName.system, ApiVersionPath, parameters = Map(Details -> details.toString)).execute
+
+  extension [R, Decoder[_]](serverService: ZIO[R, ArangoError, ArangoServer[Decoder]])
+    def version(details: Boolean = false)(using
+        D: Decoder[ServerVersion]
+    ): ZIO[R, ArangoError, ServerVersion] =
+      serverService.flatMap(_.version(details))
