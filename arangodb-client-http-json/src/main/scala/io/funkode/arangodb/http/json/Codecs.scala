@@ -6,10 +6,11 @@ package http
 package json
 
 import zio.json.*
+import zio.json.JsonDecoder.{JsonError, UnsafeJson}
 import zio.json.ast.*
 import zio.json.internal.*
+
 import io.funkode.velocypack.*
-import zio.json.JsonDecoder.{JsonError, UnsafeJson}
 
 trait Codecs:
 
