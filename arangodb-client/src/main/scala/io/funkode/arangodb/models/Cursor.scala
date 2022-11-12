@@ -9,7 +9,7 @@ final case class Cursor[T](
     extra: Option[Cursor.Extra] = None,
     hasMore: Boolean,
     id: Option[String] = None,
-    result: Vector[T]
+    result: List[T]
 )
 
 object Cursor:

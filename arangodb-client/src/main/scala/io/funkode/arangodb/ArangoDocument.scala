@@ -1,7 +1,6 @@
 package io.funkode.arangodb
 
 import io.funkode.velocypack.*
-
 import models.*
 import protocol.*
 

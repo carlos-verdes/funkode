@@ -4,12 +4,13 @@ import io.funkode.arangodb.ArangoConfiguration
 import io.funkode.arangodb.models.*
 import io.funkode.arangodb.protocol.ArangoMessage.Header
 import io.funkode.arangodb.http.json.*
+import io.funkode.docker.arangodb.Main.testDb
 import io.funkode.velocypack.*
 import zio.*
 import zio.http.Client
 import zio.json.*
 import zio.stream.*
-import zio.test.{assert, *}
+import zio.test.*
 
 trait ArangoExamples:
 
@@ -21,6 +22,7 @@ trait ArangoExamples:
   case class Pet(name: String, age: Int) derives JsonCodec
   case class PatchAge(_key: DocumentKey, age: Int) derives JsonCodec
   case class PetWithKey(_key: DocumentKey, name: String, age: Int) derives JsonCodec
+  case class Rel(_rel: String, _from: DocumentHandle, _to: DocumentHandle) derives JsonCodec
 
   val testDatabaseName = DatabaseName("ittestdb")
   val testDatabase = DatabaseInfo(testDatabaseName.unwrap, testDatabaseName.unwrap, "", false)
@@ -45,8 +47,19 @@ trait ArangoExamples:
   val updatedPet2 = pet2.copy(age = 5)
   val morePets = List(pet3, pet4)
 
-  val firstCountries = Vector(Country("🇦🇩", "Andorra"), Country("🇦🇪", "United Arab Emirates"))
-  val secondCountries = Vector(Country("🇦🇫", "Afghanistan"), Country("🇦🇬", "Antigua and Barbuda"))
+  val firstCountries = List(Country("🇦🇩", "Andorra"), Country("🇦🇪", "United Arab Emirates"))
+  val secondCountries = List(Country("🇦🇫", "Afghanistan"), Country("🇦🇬", "Antigua and Barbuda"))
+
+  val politics = GraphName("politics")
+  val allies = CollectionName("allies")
+  val countries = CollectionName("countries")
+  val graphEdgeDefinitions = List(GraphEdgeDefinition(allies, List(countries), List(countries)))
+  val es = DocumentHandle(countries, DocumentKey("ES"))
+  val fr = DocumentHandle(countries, DocumentKey("FR"))
+  val us = DocumentHandle(countries, DocumentKey("US"))
+  val alliesOfEs = List(Rel("ally", es, fr), Rel("ally", es, us), Rel("ally", us, fr))
+  val expectedAllies =
+    List(Country("\uD83C\uDDEB\uD83C\uDDF7", "France"), Country("\uD83C\uDDFA\uD83C\uDDF8", "United States"))
 
 object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
 
@@ -176,11 +189,26 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
           assertTrue(secondResults.count.get > 2L) &&
           assertTrue(secondResults.result == secondCountries) &&
           assertTrue(secondResults.hasMore) &&
-          assertTrue(firstStreamResults.toVector == (firstCountries ++ secondCountries)) &&
+          assertTrue(firstStreamResults.toList == (firstCountries ++ secondCountries)) &&
           assertTrue(streamResultsCount == 250L)
       },
-      test("Delete documents") {
-        assertTrue(true)
+      test("Create a graph and query") {
+        for
+          db <- ArangoDatabaseJson.changeTo(testDb)
+          graph = db.graph(politics)
+          graphCreated <- graph.create(graphEdgeDefinitions)
+          alliesCol = db.collection(allies)
+          _ <- alliesCol.documents.create(alliesOfEs)
+          queryAlliesOfSpain =
+            db
+              .query(
+                Query("FOR c IN OUTBOUND @startVertex GRAPH politics RETURN c")
+                  .bindVar("startVertex", VString(es.unwrap))
+              )
+          resultQuery <- queryAlliesOfSpain.execute[Country].map(_.result)
+        yield assertTrue(graphCreated.name == politics) &&
+          assertTrue(graphCreated.edgeDefinitions == graphEdgeDefinitions) &&
+          assertTrue(resultQuery == expectedAllies)
       }
     ).provideShared(
       Scope.default,
