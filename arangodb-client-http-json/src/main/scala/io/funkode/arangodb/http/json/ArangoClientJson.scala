@@ -22,6 +22,75 @@ import protocol.*
 
 trait ArangoClientJson extends ArangoClient[JsonEncoder, JsonDecoder]
 
+object ArangoClientJson:
+
+  def apply(
+      config: ArangoConfiguration,
+      httpClient: Client,
+      token: Option[Token] = None
+  ): ArangoClientJson = new ArangoClientJson:
+
+    import Constants.*
+    import Conversions.given
+    import Extensions.*
+    import codecs.given
+
+    private val BaseUrl = URL(!!).setScheme(Scheme.HTTP).setHost(config.host).setPort(config.port)
+
+    private val headers =
+      token.map(_.jwt).map(Headers.bearerAuthorizationHeader).getOrElse(Headers.empty)
+
+    def parseJson[O: JsonDecoder](bodyString: String): IO[ArangoError, O] =
+      ZIO.fromEither(bodyString.fromJson[O].leftMap(ArangoMessage.error(BadRequest.code, _)))
+
+    def head(header: ArangoMessage.Header): AIO[ArangoMessage.Header] =
+      for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
+      yield response
+
+    def get[O: JsonDecoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]] =
+      for
+        response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
+        body <- parseResponseBody(response)
+      yield ArangoMessage(response, body)
+
+    def command[I: JsonEncoder, O: JsonDecoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
+      for
+        response <- httpClient.request(message.httpRequest(BaseUrl, headers)).handleErrors
+        body <- parseResponseBody(response)
+      yield ArangoMessage(response, body)
+
+    def login(username: String, password: String): AIO[Token] =
+      for token <- getBody[Token](ArangoMessage.login(username, password))
+      yield token
+
+    private def parseResponseBody[O: JsonDecoder](response: Response): AIO[O] =
+      for
+        bodyString <- response.body.asString.handleErrors
+        // _ <- ZIO.succeed(println(s"Parsing response body: \n$bodyString"))
+        body <-
+          if response.status.isError
+          then parseJson[ArangoError](bodyString).flatMap(r => ZIO.fail(r))
+          else parseJson(bodyString)
+      yield body
+
+    def currentDatabase: DatabaseName = (config.database)
+
+  // def server: ArangoServer[F]
+  // def database(name: DatabaseName): ArangoDatabase[F]
+  // def system: ArangoDatabase[F]
+  // def db: ArangoDatabase[F]
+
+  def initArangoClient(config: ArangoConfiguration, httpClient: Client) =
+    for token <- ArangoClientJson(config, httpClient).login(config.username, config.password)
+    yield ArangoClientJson(config, httpClient, Some(token))
+
+  val live: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientJson] =
+    ZLayer(for
+      config <- ZIO.service[ArangoConfiguration]
+      httpClient <- ZIO.service[Client]
+      arangoClient <- initArangoClient(config, httpClient)
+    yield arangoClient)
+
 object Constants:
 
   @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
@@ -140,84 +209,3 @@ object Extensions:
             ArangoMessage.error(Status.InternalServerError.code, RuntimeError + t.getMessage.getOrEmpty)
           )
       }
-
-object ArangoClientJson:
-
-  def head(header: ArangoMessage.Header): JRAIO[ArangoMessage.Header] =
-    ArangoClient.head(header)
-
-  def get[O: JsonDecoder: Tag](header: ArangoMessage.Header): JRAIO[ArangoMessage[O]] =
-    ArangoClient.get(header)
-
-  def command[I: JsonEncoder: Tag, O: JsonDecoder: Tag](message: ArangoMessage[I]): JRAIO[ArangoMessage[O]] =
-    ArangoClient.command(message)
-
-  def login(username: String, password: String): JRAIO[Token] =
-    ArangoClient.login(username, password)
-
-  def apply(
-      config: ArangoConfiguration,
-      httpClient: Client,
-      token: Option[Token] = None
-  ): ArangoClientJson = new ArangoClientJson:
-
-    import Constants.*
-    import Conversions.given
-    import Extensions.*
-    import codecs.given
-
-    private val BaseUrl = URL(!!).setScheme(Scheme.HTTP).setHost(config.host).setPort(config.port)
-
-    private val headers =
-      token.map(_.jwt).map(Headers.bearerAuthorizationHeader).getOrElse(Headers.empty)
-
-    def parseJson[O: JsonDecoder](bodyString: String): IO[ArangoError, O] =
-      ZIO.fromEither(bodyString.fromJson[O].leftMap(ArangoMessage.error(BadRequest.code, _)))
-
-    def head(header: ArangoMessage.Header): AIO[ArangoMessage.Header] =
-      for response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
-      yield response
-
-    def get[O: JsonDecoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]] =
-      for
-        response <- httpClient.request(header.emptyRequest(BaseUrl, headers)).handleErrors
-        body <- parseResponseBody(response)
-      yield ArangoMessage(response, body)
-
-    def command[I: JsonEncoder, O: JsonDecoder](message: ArangoMessage[I]): AIO[ArangoMessage[O]] =
-      for
-        response <- httpClient.request(message.httpRequest(BaseUrl, headers)).handleErrors
-        body <- parseResponseBody(response)
-      yield ArangoMessage(response, body)
-
-    def login(username: String, password: String): AIO[Token] =
-      for token <- getBody[Token](ArangoMessage.login(username, password))
-      yield token
-
-    private def parseResponseBody[O: JsonDecoder](response: Response): AIO[O] =
-      for
-        bodyString <- response.body.asString.handleErrors
-        // _ <- ZIO.succeed(println(s"Parsing response body: \n$bodyString"))
-        body <-
-          if response.status.isError
-          then parseJson[ArangoError](bodyString).flatMap(r => ZIO.fail(r))
-          else parseJson(bodyString)
-      yield body
-
-    def currentDatabase: DatabaseName = (config.database)
-
-  // def server: ArangoServer[F]
-  // def database(name: DatabaseName): ArangoDatabase[F]
-  // def system: ArangoDatabase[F]
-  // def db: ArangoDatabase[F]
-
-  def initArangoClient(config: ArangoConfiguration, httpClient: Client) =
-    for token <- ArangoClientJson(config, httpClient).login(config.username, config.password)
-    yield ArangoClientJson(config, httpClient, Some(token))
-
-  val live: ZLayer[ArangoConfiguration & Client, ArangoError, ArangoClientJson] =
-    ZLayer(for
-      config <- ZIO.service[ArangoConfiguration]
-      httpClient <- ZIO.service[Client]
-      arangoClient <- initArangoClient(config, httpClient)
-    yield arangoClient)

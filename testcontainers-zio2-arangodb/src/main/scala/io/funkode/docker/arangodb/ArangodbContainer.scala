@@ -96,7 +96,7 @@ object ArangodbContainer:
       httpClient
     )
 
-  val life =
+  val live =
     ZLayer.scopedEnvironment {
       for
         arangoConfig <- ZIO.service[ArangoConfiguration]

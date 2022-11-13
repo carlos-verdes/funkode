@@ -9,7 +9,6 @@ import zio.*
 import models.*
 
 trait ArangoClient[Encoder[_], Decoder[_]]:
-  thisArango =>
 
   def head(header: ArangoMessage.Header): AIO[ArangoMessage.Header]
   def get[O: Decoder](header: ArangoMessage.Header): AIO[ArangoMessage[O]]
@@ -28,26 +27,3 @@ trait ArangoClient[Encoder[_], Decoder[_]]:
 //def system: ArangoDatabase[F]
 
 //def db: ArangoDatabase[F]
-
-object ArangoClient:
-
-  def head[Encoder[_]: TagK, Decoder[_]: TagK](
-      header: ArangoMessage.Header
-  ): RAIO[Encoder, Decoder, ArangoMessage.Header] =
-    ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](_.head(header))
-
-  def get[Encoder[_]: TagK, Decoder[_]: TagK, O: Decoder: Tag](
-      header: ArangoMessage.Header
-  ): RAIO[Encoder, Decoder, ArangoMessage[O]] =
-    ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](_.get(header))
-
-  def command[Encoder[_]: TagK, Decoder[_]: TagK, I: Encoder: Tag, O: Decoder: Tag](
-      message: ArangoMessage[I]
-  ): RAIO[Encoder, Decoder, ArangoMessage[O]] =
-    ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](_.command(message))
-
-  def login[Encoder[_]: TagK, Decoder[_]: TagK](
-      username: String,
-      password: String
-  ): RAIO[Encoder, Decoder, Token] =
-    ZIO.serviceWithZIO[ArangoClient[Encoder, Decoder]](_.login(username, password))

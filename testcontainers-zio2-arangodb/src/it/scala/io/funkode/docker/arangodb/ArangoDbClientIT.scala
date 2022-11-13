@@ -202,8 +202,9 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
           queryAlliesOfSpain =
             db
               .query(
-                Query("FOR c IN OUTBOUND @startVertex GRAPH politics RETURN c")
+                Query("FOR c IN OUTBOUND @startVertex @@edge RETURN c")
                   .bindVar("startVertex", VString(es.unwrap))
+                  .bindVar("@edge", VString(allies.unwrap))
               )
           resultQuery <- queryAlliesOfSpain.execute[Country].map(_.result)
         yield assertTrue(graphCreated.name == politics) &&
@@ -214,6 +215,6 @@ object ArangoDbClientIT extends ZIOSpecDefault with ArangoExamples:
       Scope.default,
       ArangoConfiguration.default,
       Client.default,
-      ArangodbContainer.life,
-      Arango.life
+      ArangodbContainer.live,
+      Arango.live
     ) // @@ TestAspect.sequential
