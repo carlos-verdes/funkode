@@ -3,15 +3,22 @@ package http
 package json
 
 import zio.*
-import zio.http.Client
 import zio.json.*
 
+import io.funkode.arangodb.http.json.ArangoClientJson.initArangoClient
 import models.*
+
+type JRAIO[O] = WithClient[JsonEncoder, JsonDecoder, O]
 
 type Arango = ArangoApi[JsonEncoder, JsonDecoder]
 type WithJsonApi[O] = WithApi[JsonEncoder, JsonDecoder, O]
 
+type ArangoCollectionJson = ArangoCollection[JsonEncoder, JsonDecoder]
 type ArangoDatabaseJson = ArangoDatabase[JsonEncoder, JsonDecoder]
+type ArangoGraphJson = ArangoGraph[JsonEncoder, JsonDecoder]
+type ArangoServerJson = ArangoServer[JsonDecoder]
+
+object codecs extends Codecs
 
 object Arango:
 
@@ -24,9 +31,9 @@ object Arango:
 
   def collection(name: CollectionName): WithJsonApi[ArangoCollectionJson] = ArangoApi.collection(name)
 
-  def server: WithJsonApi[ArangoServerJson] = ArangoApi.server          
+  def server: WithJsonApi[ArangoServerJson] = ArangoApi.server
 
-  val life: ZLayer[ArangoConfiguration & ArangoClientJson, ArangoError, Arango] =
+  val live: ZLayer[ArangoConfiguration & ArangoClientJson, ArangoError, Arango] =
     ZLayer(for
       config <- ZIO.service[ArangoConfiguration]
       arangoClient <- ZIO.service[ArangoClientJson]

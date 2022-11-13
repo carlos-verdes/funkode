@@ -43,3 +43,7 @@ run:
 .PHONY: dependencyTree
 dependencyTree:
 	sbt dependencyBrowseTree
+
+.PHONY: startDockerArango
+startDockerArango:
+	docker run -e ARANGO_ROOT_PASSWORD="testPassword" -p8529:8529 -d --name arangodb arangodb

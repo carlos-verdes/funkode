@@ -15,6 +15,8 @@ trait ArangoApi[Encoder[_], Decoder[_]]:
 
   def collection(name: CollectionName): ArangoCollection[Encoder, Decoder] = db.collection(name)
 
+  def graph(name: GraphName): ArangoGraph[Encoder, Decoder] = db.graph(name)
+
   def server: ArangoServer[Decoder]
 
 object ArangoApi:
@@ -54,8 +56,10 @@ object ArangoApi:
 
     val server: ArangoServer[Decoder] = new ArangoServer.Impl[Encoder, Decoder](using arangoClient)
 
-  extension [R, Enc[_], Dec[_]](apiService: ZIO[R, ArangoError, ArangoApi[Enc, Dec]])
-    def db: ZIO[R, ArangoError, ArangoDatabase[Enc, Dec]] = apiService.map(_.db)
+  extension [R, Enc[_], Dec[_]](api: ZIO[R, ArangoError, ArangoApi[Enc, Dec]])
+    def db: WithResource[R, ArangoDatabase[Enc, Dec]] = api.map(_.db)
 
-    def collection(name: CollectionName): ZIO[R, ArangoError, ArangoCollection[Enc, Dec]] =
-      apiService.map(_.collection(name))
+    def collection(name: CollectionName): WithResource[R, ArangoCollection[Enc, Dec]] =
+      api.map(_.collection(name))
+
+    def graph(name: GraphName): WithResource[R, ArangoGraph[Enc, Dec]] = api.map(_.graph(name))

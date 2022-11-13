@@ -50,8 +50,8 @@ object Main extends ZIOAppDefault:
 
   def run = app.provide(
     ArangoConfiguration.default,
-    ArangodbContainer.life,
-    Arango.life,
+    ArangodbContainer.live,
+    Arango.live,
     Client.default,
     Scope.default
   )
