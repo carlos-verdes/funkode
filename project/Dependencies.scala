@@ -13,12 +13,17 @@ object Dependencies {
     val zioJsonV = "0.3.0"
     val zioConfMagnoliaV = "3.0.2"
     val zioConfTypesafeV = "3.0.2"
+    val zioCryptoV = "0.0.1"
     val zioPreludeV = "1.0.0-RC16"
 
     val logBackV = "1.4.0"
     val scalaUriV = "4.0.2"
     val scodecV = "2.2.0"
     val testContainersV = "0.40.10"
+
+    val tinkV = "1.6.1"
+    val jwtZioJsonV = "9.1.2"
+    val web3jV = "5.0.0"
   }
 
   object Libraries {
@@ -37,6 +42,7 @@ object Dependencies {
     val zioConcurrent   = "dev.zio" %% "zio-concurrent"      % zioV
     val zioConfMagnolia = "dev.zio" %% "zio-config-magnolia" % zioConfMagnoliaV
     val zioConfTypesafe = "dev.zio" %% "zio-config-typesafe" % zioConfTypesafeV
+    val zioCrypto       = "dev.zio" %% "zio-crypto"          % zioCryptoV
     val zioHttp         = "dev.zio" %% "zio-http"            % zioHttpV
     val zioJson         = "dev.zio" %% "zio-json"            % zioJsonV
     val zioJGolden      = "dev.zio" %% "zio-json-golden"     % zioJsonV
@@ -51,5 +57,9 @@ object Dependencies {
     val scalaUri       = "io.lemonlabs"         %% "scala-uri"                 % scalaUriV
     val scodecBits     = "org.scodec"           %% "scodec-bits"               % scodecV
     val scodecCore     = "org.scodec"           %% "scodec-core"               % scodecV
+
+    val tink       = "com.google.crypto.tink" %  "tink"         % tinkV
+    val jwtZioJson = "com.github.jwt-scala"   %% "jwt-zio-json" % jwtZioJsonV
+    val web3j      = "org.web3j"              %  "core"         % web3jV
   }
 }
