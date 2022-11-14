@@ -30,9 +30,9 @@ object ArangoConfiguration:
   val REPLY_TIMEOUT_DEFAULT: Duration = 30.seconds
 
   @SuppressWarnings(Array("stryker4s.mutation.StringLiteral"))
-  val DEFAULT_PATH = "arangodb"
+  val DefaultPath = "arangodb"
 
   val arangoConfigDescriptor = descriptor[ArangoConfiguration].mapKey(toKebabCase)
 
   def fromPath(path: String) = TypesafeConfig.fromResourcePath(nested(path)(arangoConfigDescriptor))
-  val default = fromPath(DEFAULT_PATH)
+  val default = fromPath(DefaultPath)
