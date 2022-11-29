@@ -96,6 +96,16 @@ lazy val rest =
       name := "funkode-rest",
       libraryDependencies ++= (commonLibs ++ zioLibs ++ testLibs)))
 
+lazy val resource =
+  project
+    .in(file("resource"))
+    .configs(IntegrationTest)
+    .settings(Defaults.itSettings)
+    .settings(Seq(
+      name := "funkode-resource",
+      libraryDependencies ++= (commonLibs ++ zioLibs ++ testLibs ++ Seq(zioSchema, zioArangodb)),
+      testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")))
+
 lazy val todo =
   project
     .in(file("examples/todoTasks"))
