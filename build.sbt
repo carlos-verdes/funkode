@@ -24,7 +24,8 @@ ThisBuild / scalacOptions ++=
 //    "-Yexplicit-nulls", // experimental (I've seen it cause issues with circe)
     "-Ykind-projector",
 //    "-Ysafe-init", // experimental (I've seen it cause issues with circe)
-    "-Yretain-trees"
+    "-Yretain-trees",
+    "-Xcheck-macros"
   ) ++ Seq("-rewrite", "-indent") ++ Seq("-source", "future-migration")
 
 

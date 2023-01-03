@@ -3,11 +3,14 @@
  */
 package io.funkode.resource.model
 
+import scala.quoted.{Expr, Quotes, Type}
+
 import io.lemonlabs.uri.Urn
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
 import zio.schema.*
+import zio.schema.meta.MetaSchema
 import zio.stream.*
 
 opaque type Etag = String
@@ -15,9 +18,9 @@ object Etag:
   def apply(etag: String): Etag = etag
   extension (etag: Etag) def unwrap: String = etag
 
-enum ResourceError(message: String, cause: Option[Throwable] = None) extends Throwable(message, cause.orNull):
-  case NotFoundError(urn: Urn, cause: Option[Throwable])
-      extends ResourceError(s"Resource with id $urn not found", cause)
+enum ResourceError(msg: String, cause: Option[Throwable] = None) extends Throwable(msg, cause.orNull):
+  case NotFoundError(urn: Option[Urn])
+      extends ResourceError(s"""Resource ${urn.map("with id " + _).getOrElse("")} not found""")
   case SerializationError(msg: String, cause: Option[Throwable] = None) extends ResourceError(msg, cause)
   case FormatError(msg: String, cause: Option[Throwable] = None)
       extends ResourceError(s"Format not supported: $msg", cause)

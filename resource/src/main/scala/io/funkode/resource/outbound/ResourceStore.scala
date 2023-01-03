@@ -4,11 +4,16 @@
 package io.funkode.resource
 package outbound
 
+import scala.compiletime.*
+import scala.quoted.*
+
 import io.lemonlabs.uri.Urn
+import io.netty.util.internal.StringUtil
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
 import zio.schema.*
+import zio.schema.meta.MetaSchema
 import zio.stream.*
 
 import model.*
@@ -17,19 +22,11 @@ import Resource.*
 type ResourceApiCall[R] = IO[ResourceError, R]
 type ResourceStream[R] = Stream[ResourceError, R]
 
-case class StoreModel(graphs: List[GraphModel])
-case class GraphModel(name: String, collections: List[CollectionModel])
-case class CollectionModel(
-    name: String,
-    relationships: List[RelationshipModel] = List.empty
-)
-case class RelationshipModel(rel: String, targetCollection: String)
-
 trait ResourceStore[Encoder[_], Decoder[_], Document]:
 
   type DocResource = Resource[Encoder, Decoder, Document]
 
-  def initStore(storeModel: StoreModel): ResourceApiCall[Unit]
+  def initStore(resourceModel: ResourceModel): ResourceApiCall[Unit]
 
   def fetch(urn: Urn): ResourceApiCall[DocResource]
   def store(urn: Urn, document: Document): ResourceApiCall[DocResource]
@@ -49,7 +46,7 @@ object JsonStore:
 
   def withStore[R](f: JsonStore => WithJsonStore[R]) = ZIO.service[JsonStore].flatMap(f)
 
-  def initStore(storeModel: StoreModel): WithJsonStore[Unit] = withStore(_.initStore(storeModel))
+  def initStore(graphModel: ResourceModel): WithJsonStore[Unit] = withStore(_.initStore(graphModel))
 
   def fetch(urn: Urn): WithJsonStore[JsonResource] = withStore(_.fetch(urn))
 
