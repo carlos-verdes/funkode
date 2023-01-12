@@ -5,10 +5,6 @@ package io.funkode.resource
 package outbound
 package adapter
 
-import io.funkode.arangodb.http.*
-import io.funkode.arangodb.http.JsonCodecs.given
-import io.funkode.arangodb.model.*
-import io.funkode.resource.model.Resource.Identifiable
 import io.lemonlabs.uri.Urn
 import zio.*
 import zio.json.*
@@ -16,6 +12,10 @@ import zio.json.ast.Json
 import zio.schema.*
 import zio.schema.codec.JsonCodec.*
 import zio.stream.*
+
+import io.funkode.arangodb.http.*
+import io.funkode.arangodb.http.JsonCodecs.given
+import io.funkode.arangodb.model.*
 import io.funkode.resource.model.*
 import io.funkode.resource.model.Resource.Identifiable
 import io.funkode.velocypack.VPack.VObject
@@ -25,14 +25,20 @@ class ArangoResourceStore(arango: ArangoClientJson) extends JsonStore:
   import ArangoResourceStore.*
   import ArangoResourceStore.given
 
-  def initStore(storeModel: StoreModel): ResourceApiCall[Unit] =
-    ZIO
-      .collectAll(
-        storeModel.graphs
-          .flatMap(_.collections.map(_.name).map(CollectionName.apply))
-          .map(col => arango.db.collection(col).createIfNotExist())
-      )
-      .handleErrors *> ZIO.unit
+  def initStore(resourceModel: ResourceModel): ResourceApiCall[Unit] =
+    // val db = arango.database(DatabaseName(resourceModel.name))
+    val db = arango.db
+
+    db.createIfNotExist().handleErrors() *>
+      ZIO
+        .collectAll {
+          resourceModel.collections
+            .map(_._1)
+            .map(CollectionName.apply)
+            .map(col => db.collection(col).createIfNotExist())
+        }
+        .handleErrors() *>
+      ZIO.unit
 
   /*
     storeModel.graphs.flatMap(graph =>
@@ -51,7 +57,7 @@ class ArangoResourceStore(arango: ArangoClientJson) extends JsonStore:
     arango.db
       .document(urn)
       .read[Json]()
-      .handleErrors
+      .handleErrors(Some(urn))
       .map(_.asResource)
 
   def store(urn: Urn, document: Json): ResourceApiCall[JsonResource] =
@@ -60,7 +66,7 @@ class ArangoResourceStore(arango: ArangoClientJson) extends JsonStore:
         arango.db
           .document(urn)
           .upsert(JsonCodecs.jsonObjectToVObject(jsonObj))
-          .handleErrors
+          .handleErrors()
           .flatMap(vpack =>
             ZIO
               .fromEither[String, Json](vobjectEncoder.toJsonAST(vpack))
@@ -94,7 +100,11 @@ object ArangoResourceStore:
     Urn.parse(s"urn:${docHandle.collection.unwrap}:${docHandle.key.unwrap}")
 
   extension [R](arangoIO: IO[ArangoError, R])
-    def handleErrors: ResourceApiCall[R] = arangoIO.catchAll(e => ZIO.fail(ResourceError.UnderlinedError(e)))
+    def handleErrors(urn: Option[Urn] = None): ResourceApiCall[R] = arangoIO.catchAll {
+
+      case ArangoError(404, error, errorMessage, _) => ZIO.fail(ResourceError.NotFoundError(urn))
+      case e                                        => ZIO.fail(ResourceError.UnderlinedError(e))
+    }
 
   extension (json: Json)
     def etag: Option[Etag] = json match
